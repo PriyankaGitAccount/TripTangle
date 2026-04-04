@@ -19,7 +19,7 @@ AI-powered group travel date coordination app. Users create a trip, share a link
 **Target surface**: Web-based mobile application (responsive; desktop shows a two-column layout).
 
 **Core loop**:
-1. Creator makes a trip → a demo member "Sam" is auto-seeded with availability
+1. Creator makes a trip → shares the link with their group
 2. Members join via shareable link and tap dates (available / maybe / busy)
 3. Live heatmap shows group overlap in real-time
 4. Once all members submit, AI auto-triggers and returns ranked date suggestions
@@ -173,8 +173,8 @@ The heatmap and AI/vote panels are hidden. Invite Friends button is removed from
 
 `use-realtime-pins`, `use-realtime-polls`, `use-realtime-expenses`, `use-realtime-photos` all follow the seed+patch pattern. Import `supabase` singleton from `@/lib/supabase/client` (not `createBrowserClient`). Use `payload.eventType` (not `payload.event`) in realtime callbacks.
 
-**Demo member seeding**
-`POST /api/trips` auto-creates a member named `Sam` immediately after the creator, then seeds Sam's availability: first 7 days = available (weekdays) / maybe (weekends), days 8–14 = maybe (weekdays) / unavailable (weekends), day 15+ = unavailable. This gives new creators a live heatmap and enables AI recommendation with just one real member.
+**Trip creation**
+`POST /api/trips` creates the trip, inserts the creator as the first member, and updates `creator_member_id`. No demo members are seeded — all members are real users joining via the share link.
 
 ---
 
@@ -190,7 +190,7 @@ src/
 │   │   ├── join/page.tsx               Display name entry
 │   │   └── plan/page.tsx               Plan phase — 7 parallel queries, tab routing
 │   └── api/trips/
-│       ├── route.ts                    POST /api/trips (create + seed Sam)
+│       ├── route.ts                    POST /api/trips (create trip + first member)
 │       └── [id]/
 │           ├── route.ts                GET /api/trips/[id]
 │           ├── join/route.ts           POST — join trip
@@ -391,9 +391,7 @@ Inter via `next/font/google`. No other font families.
 
 4. **Heatmap full-month grid**: `heatmap.tsx` renders complete calendar months (not just the date range). Out-of-range days render as faded numbers with no box. This requires `toISO(year, month, day)` for all cells — use `dateStats.get(date) ?? fallback` (never `!` assertion) because not all month days exist in the stats map.
 
-5. **Demo member name**: The auto-seeded member is named `Sam`. If you rename it, update the seeding logic in `POST /api/trips/route.ts` and verify the display in `MemberList`.
-
-6. **MIN_MEMBERS_FOR_AI = 2**: Lowered from 3 so the demo works with one real user + Sam. Do not raise without testing the demo flow.
+5. **MIN_MEMBERS_FOR_AI = 2**: Minimum group size for AI recommendation to trigger. Requires at least 2 real members to have submitted availability.
 
 7. **Auto-trigger guard**: `hasAutoTriggered.current` (a `useRef`) prevents double-calling the recommend API. If you add manual re-trigger logic, reset this ref appropriately.
 
