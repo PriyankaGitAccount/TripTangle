@@ -42,23 +42,23 @@
 ### API Design
 | Skill | Detail |
 |---|---|
-| **Next.js Route Handlers** | 7 REST endpoints under `src/app/api/trips/` — all typed with `NextRequest` / `NextResponse` |
-| **Input validation** | Required-field checks, date ordering checks, constraint error handling (Supabase `23505` unique violations) |
-| **Parallel data fetching** | `Promise.all([...])` across 5 Supabase queries in the GET route — zero serial waterfalls |
-| **Response caching** | AI recommendation cached in DB; freshness checked by comparing `created_at` vs `max(availability.updated_at)` before re-calling Claude |
-| **Authorization** | Lock-dates endpoint verifies `member_id === trip.creator_member_id` server-side |
+| **Next.js Route Handlers** | 20+ REST endpoints under `src/app/api/trips/` — all typed with `NextRequest` / `NextResponse` |
+| **Input validation** | Required-field checks, date ordering (client + server), constraint error handling (Supabase `23505` unique violations) |
+| **Parallel data fetching** | `Promise.all([...])` across 9 Supabase queries in plan page — zero serial waterfalls |
+| **Authorization** | Lock-dates endpoint verifies `member_id === trip.creator_member_id` server-side; photo delete verifies ownership |
+| **Idempotent schema** | `DROP POLICY IF EXISTS` before every `CREATE POLICY`; `ALTER PUBLICATION` wrapped in `DO $$ BEGIN IF NOT EXISTS` guards |
 
 ### Database
 | Skill | Detail |
 |---|---|
-| **PostgreSQL** | 5-table relational schema: `trips`, `members`, `availability`, `ai_recommendations`, `votes` |
-| **Supabase** | Managed Postgres with JS client (`@supabase/supabase-js`) |
-| **Schema design** | Unique constraints `(member_id, trip_id, date)` on availability; `(member_id, trip_id)` on votes enforce one-vote-per-member at the DB level |
-| **Upsert pattern** | Availability and votes use upsert — the same API call handles both create and update |
-| **Row Level Security** | RLS enabled on all tables; permissive anon policies with security-through-obscurity (12-char trip IDs) |
-| **Cascading deletes** | `ON DELETE CASCADE` on all foreign keys — deleting a trip cleans up all child rows automatically |
-| **Indexes** | Compound index `(member_id, trip_id)` on availability; single-column indexes on all `trip_id` FKs for fast filtering |
-| **DB constraints** | `CHECK` constraints on `status` enums, `option_index` range, name length, date range validity |
+| **PostgreSQL** | 12-table schema: `trips`, `members`, `availability`, `ai_recommendations`, `votes`, `itineraries`, `itinerary_suggestions`, `map_pins`, `polls`, `poll_responses`, `expenses`, `trip_photos` |
+| **Supabase** | Managed Postgres + Realtime + Storage with JS client (`@supabase/supabase-js`) |
+| **Schema design** | Unique constraints enforce one-vote, one-availability-per-date, one-response-per-poll at DB level |
+| **Upsert pattern** | Availability, votes, poll responses all use upsert — same API call handles create and update |
+| **Row Level Security** | RLS enabled on all tables; permissive anon policies; security relies on unguessable 12-char trip IDs |
+| **Cascading deletes** | `ON DELETE CASCADE` on all foreign keys |
+| **Supabase Storage** | `trip-photos` public bucket; uploads use service role key server-side; reads use public URL pattern |
+| **JSONB columns** | `recommendation_json`, `itinerary_json`, `options` (polls), `split_among` (expenses) — flexible nested data |
 
 ---
 
@@ -66,11 +66,12 @@
 
 | Skill | Detail |
 |---|---|
-| **Supabase Realtime** | `postgres_changes` subscriptions on `members`, `availability`, `votes` tables |
-| **Custom React hooks** | `useRealtimeMembers`, `useRealtimeAvailability`, `useRealtimeVotes` — each seeds from server-fetched initial data and patches live events |
-| **Event handling** | INSERT/UPDATE/DELETE events mapped to local state mutations without full refetch |
+| **Supabase Realtime** | `postgres_changes` subscriptions on `members`, `availability`, `votes`, `map_pins`, `polls`, `poll_responses`, `expenses`, `trip_photos` |
+| **Seed + patch pattern** | Every realtime hook accepts server-fetched `initial*` data and patches local state on INSERT/UPDATE/DELETE — no full refetch |
+| **Custom React hooks** | `useRealtimeMembers`, `useRealtimeAvailability`, `useRealtimeVotes`, `useRealtimePins`, `useRealtimePolls`, `useRealtimeExpenses`, `useRealtimePhotos` |
+| **Event handling** | `payload.eventType` (not `payload.event`) — consistent across all hooks |
 | **Channel scoping** | Each subscription filtered by `trip_id` — only receives events for the current trip |
-| **Deduplication** | Vote upserts use `member_id` to find and overwrite the existing entry in local state |
+| **Deduplication** | Vote upserts use `member_id` to find and overwrite existing entry in local state |
 
 ---
 
@@ -79,15 +80,19 @@
 ### Claude Integration
 | Skill | Detail |
 |---|---|
-| **Anthropic SDK** | `@anthropic-ai/sdk` — direct `messages.create` call with `claude-sonnet-4-20250514` |
-| **Prompt engineering** | Structured system + user prompt with strict JSON output schema; explicit priority rules for the model to follow |
-| **Pre-computation** | Exact-overlap windows (all members `available`) and near-match windows (all `available` or `maybe`) are computed in TypeScript before the prompt — fed to Claude as structured context so it doesn't have to infer them |
-| **Structured output** | Claude returns a typed `RecommendationData` JSON object: `best`, `runner_up`, `alternatives[]`, `nudge`; parsed with `JSON.parse` |
-| **Confidence scoring** | Claude returns a 0–100 confidence score per date window; rendered as a colour-coded progress bar |
-| **Trade-off explanations** | Plain-language `trade_off` field per runner-up / alternative option; surfaced in the UI as an amber callout |
-| **Caching** | Recommendation stored in `ai_recommendations` table; only regenerated if availability data is newer than the last recommendation |
-| **Auto-triggering** | `useEffect` in `TripDashboard` watches `submittedCount === members.length` and fires the recommendation API automatically — no manual button needed once all members submit |
-| **Server-side only** | `ANTHROPIC_API_KEY` never exposed to the client; all Claude calls happen inside Route Handlers |
+| **Anthropic SDK** | `@anthropic-ai/sdk` — `messages.create` with `claude-haiku-4-5-20251001` for justifications/itinerary; deterministic TypeScript owns all date logic |
+| **Prompt engineering** | Structured system + user prompt with strict JSON output schema; Claude writes only 1-liner justifications — never picks dates |
+| **Pre-computation** | All date windows computed in TypeScript (`groupConsecutive`, `bestPartialWindow`, `bestNearWindow`, `memberMaybeWindow`) before calling Claude; model receives structured context |
+| **2-member vs 3+ member paths** | Separate recommendation logic: 2-member uses exact + organiser maybe + member maybe; 3+ uses exact/partial + group maybe + organiser maybe |
+| **Structured output** | `RecommendationData`: `best`, `runner_up?`, `alternatives[]`, `nudge`, `fallback?` (FallbackMonths when zero overlap found) |
+| **Option type labels** | `exact` → PERFECT MATCH, `partial` → BEST AVAILABLE, `maybe_organiser` → ORGANISER'S MAYBE, `maybe_member` → MEMBER'S MAYBE, `maybe_group` → GROUP COMPROMISE |
+| **Confidence scoring** | Deterministic scale: exact=95, partial=72, maybe_group=55, maybe_organiser=42, maybe_member=38 |
+| **Fallback months** | Separate Claude call returns `FallbackMonths` (3 recommended travel months) when zero availability overlap found |
+| **Pause-triggered re-suggestions** | 3s inactivity timer in `CalendarGrid` fires `onPause`; `TripDashboard` re-calls recommend endpoint; max 3 revisions tracked in localStorage; `onPauseRef` pattern avoids stale closure |
+| **Auto-triggering** | `hasAutoTriggered.current` ref fires recommend API when `submittedCount === members.length` — prevents double-call |
+| **AI itinerary** | `getItinerary()` in `claude.ts` — day-by-day plan with morning/afternoon/evening activities, tips, search queries, destination lat/lng for map centering |
+| **No caching** | Every recommend + itinerary trigger deletes the old DB row and regenerates fresh |
+| **Server-side only** | `ANTHROPIC_API_KEY` never exposed to client; all Claude calls inside Route Handlers |
 
 ---
 
@@ -110,10 +115,17 @@
 | **Full-page layout** | Two-column sticky layout: personal input (left) vs group output (right) — switches to single column on mobile |
 | **Full calendar months** | Group heatmap renders complete calendar months (not just date-range slice), with out-of-range days faded |
 | **Availability cycling** | Tap a date to cycle `available → maybe → unavailable → clear`; colour-coded green / amber / red |
-| **Demo member seeding** | Auto-creates a `Sam` demo member with realistic pre-filled availability on trip creation — gives new users a live heatmap and enables AI recommendation immediately |
-| **Destination photo** | Lock banner fetches a destination photo from Unsplash using keywords extracted from the trip name; graceful gradient fallback on error |
-| **Vote-to-lock flow** | Voting → leading badge → "Lock Winning Dates" button → locked state → left-column lock card + right-column feature planning cards |
-| **Post-lock layout shift** | After locking, the right column replaces the heatmap+vote panel with four "What's Next" feature cards (Destination, Accommodation, Budget, Itinerary) |
+| **Per-member heatmap pips** | Each heatmap cell shows coloured dots per member (green=available, amber=maybe, red=unavailable, grey=no response) + colour key legend |
+| **Demo member seeding** | Auto-creates `Sam` + `Zoe` with contrasting patterns — Sam available early/unavailable late, Zoe busy early/free mid — creates realistic heatmap gradient immediately |
+| **Destination photo** | Lock banner fetches destination photo from Unsplash source URL; graceful gradient fallback |
+| **Vote-to-lock flow** | Inline vote buttons per option → realtime vote counts → "Lock Winning Dates" (creator only) → post-lock redirect to Plan |
+| **Post-lock redirect** | `router.push()` in `useEffect` — never in render body (avoids "Cannot update while rendering" error) |
+| **Post-lock layout** | Right column replaces heatmap+vote with `WhatsNextCards` (4 planning feature cards linking to Plan phase) |
+| **Plan phase tabs** | 5 tabs: Itinerary, Shared Map, Polls, Budget, Photos — Map+Polls locked until itinerary generated |
+| **Budget tracker** | Expense logging by category, per-member balances, greedy debt simplification settlement algorithm (Splitwise-style) |
+| **Photo gallery** | Per-member sub-tabs, drag-and-drop upload (10MB), lightbox + download, Supabase Storage with service role key server-side |
+| **Brand icons** | YouTube + TripAdvisor use official SVG icons (not emoji) in itinerary activity chips, booking strip, and Watch & Read sidebar |
+| **Date validation** | Trip creation: start = today (pre-filled), end = blank; end `min` = start; inline red error if end < start |
 | **Invite gate** | Share / Invite Friends button hidden once dates are locked |
 
 ---
@@ -132,9 +144,10 @@
 ## 8. Stack Summary
 
 ```
-Frontend    Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS v4 · shadcn/ui
-Backend     Next.js Route Handlers · Supabase (PostgreSQL) · Supabase Realtime
-AI          Anthropic Claude (claude-sonnet-4-20250514) via @anthropic-ai/sdk
+Frontend    Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS v4 · shadcn/ui (Base UI)
+Backend     Next.js Route Handlers · Supabase (PostgreSQL + Realtime + Storage)
+Maps        @vis.gl/react-google-maps · Google Maps JS API · Places API · Geocoding API
+AI          Anthropic Claude (claude-haiku-4-5-20251001) via @anthropic-ai/sdk
 Auth        No-auth · localStorage identity · unguessable trip IDs (nanoid)
 Deploy      Vercel · Supabase Cloud
 ```
