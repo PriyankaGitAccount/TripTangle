@@ -48,7 +48,7 @@ export default async function TripPage({ params }: Props) {
   const { id } = await params;
   const supabase = createServerClient();
 
-  const [tripResult, membersResult, availabilityResult, recResult, votesResult] =
+  const [tripResult, membersResult, availabilityResult, recResult, votesResult, inviteResult] =
     await Promise.all([
       supabase.from('trips').select('*').eq('id', id).single(),
       supabase
@@ -64,6 +64,7 @@ export default async function TripPage({ params }: Props) {
         .order('created_at', { ascending: false })
         .limit(1),
       supabase.from('votes').select('*').eq('trip_id', id),
+      supabase.from('invitations').select('*', { count: 'exact', head: true }).eq('trip_id', id),
     ]);
 
   if (!tripResult.data) {
@@ -77,6 +78,7 @@ export default async function TripPage({ params }: Props) {
       initialAvailability={availabilityResult.data || []}
       initialRecommendation={recResult.data?.[0] || null}
       initialVotes={votesResult.data || []}
+      initialInviteCount={inviteResult.count ?? 0}
     />
   );
 }

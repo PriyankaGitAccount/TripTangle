@@ -189,3 +189,12 @@ export interface PollResponse {
   option_index: number;
   created_at: string;
 }
+
+export type InviteChannel = 'whatsapp' | 'gmail' | 'sms' | 'copy';
+
+export interface Invitation {
+  id: string;
+  trip_id: string;
+  channel: InviteChannel;
+  created_at: string;
+}

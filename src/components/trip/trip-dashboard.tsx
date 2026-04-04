@@ -24,6 +24,7 @@ interface TripDashboardProps {
   initialAvailability: Availability[];
   initialRecommendation: AIRecommendation | null;
   initialVotes: Vote[];
+  initialInviteCount: number;
 }
 
 function JoinView({
@@ -194,6 +195,7 @@ export function TripDashboard({
   initialAvailability,
   initialRecommendation,
   initialVotes,
+  initialInviteCount,
 }: TripDashboardProps) {
   const router = useRouter();
   const { memberId, isIdentified, isLoaded, setIdentity } = useMemberIdentity(trip.id);
@@ -204,6 +206,7 @@ export function TripDashboard({
   const [recommendation, setRecommendation] = useState<AIRecommendation | null>(initialRecommendation);
   const [tripState, setTripState] = useState(trip);
   const [autoLoading, setAutoLoading] = useState(false);
+  const [inviteCount, setInviteCount] = useState(initialInviteCount);
   const hasAutoTriggered = useRef(false);
 
   const MAX_REVISIONS = 3;
@@ -222,7 +225,11 @@ export function TripDashboard({
   const isLocked = !!tripState.locked_dates_start;
   const submittedMemberIds = new Set(availability.map((a) => a.member_id));
   const submittedCount = submittedMemberIds.size;
-  const allSubmitted = members.length >= MIN_MEMBERS_FOR_AI && submittedCount === members.length;
+
+  // Trigger AI when ≥60% of expected group (invites + creator) have submitted, min 2
+  const expectedTotal = Math.max(members.length, inviteCount + 1);
+  const threshold = Math.max(MIN_MEMBERS_FOR_AI, Math.ceil(expectedTotal * 0.6));
+  const allSubmitted = submittedCount >= threshold;
 
   const autoTrigger = useCallback(async () => {
     if (hasAutoTriggered.current || recommendation || isLocked) return;
@@ -310,7 +317,14 @@ export function TripDashboard({
 
       {/* Full-width top bar */}
       <div className="mb-5">
-        <TripHeader trip={tripState} isLocked={isLocked} />
+        <TripHeader
+          trip={tripState}
+          isLocked={isLocked}
+          inviteCount={inviteCount}
+          memberCount={members.length}
+          submittedCount={submittedCount}
+          onInviteSent={() => setInviteCount((c) => c + 1)}
+        />
       </div>
 
       {/* Two-column grid */}

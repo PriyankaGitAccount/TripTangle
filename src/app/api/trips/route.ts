@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { generateTripId } from '@/lib/trip-utils';
+import { generateTripId, getDatesBetween } from '@/lib/trip-utils';
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -64,6 +64,17 @@ export async function POST(request: NextRequest) {
     .from('trips')
     .update({ creator_member_id: member.id })
     .eq('id', tripId);
+
+  // Seed creator availability — all dates in range marked as available
+  const allDates = getDatesBetween(date_range_start, date_range_end);
+  await supabase.from('availability').insert(
+    allDates.map((date) => ({
+      member_id: member.id,
+      trip_id: tripId,
+      date,
+      status: 'available',
+    }))
+  );
 
   return NextResponse.json({
     trip_id: tripId,

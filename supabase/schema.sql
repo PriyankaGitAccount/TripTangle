@@ -252,3 +252,19 @@ DO $$ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE trip_photos;
   END IF;
 END $$;
+
+-- ─────────────────────────────────────────────────────────────────
+-- MIGRATION: Invitations — track invite sends per channel
+-- ─────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS invitations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+  channel TEXT NOT NULL CHECK (channel IN ('whatsapp', 'gmail', 'sms', 'copy')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_invitations_trip_id ON invitations(trip_id);
+ALTER TABLE invitations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "anon_all_invitations" ON invitations;
+CREATE POLICY "anon_all_invitations" ON invitations FOR ALL TO anon USING (true) WITH CHECK (true);
