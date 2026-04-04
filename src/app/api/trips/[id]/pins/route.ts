@@ -17,7 +17,7 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
   }
 
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from('map_pins')
@@ -44,7 +44,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Missing pin_id or member_id' }, { status: 400 });
   }
 
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
 
   // Only the pin owner can delete
   const { error } = await supabase

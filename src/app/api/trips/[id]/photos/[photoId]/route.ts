@@ -20,7 +20,7 @@ export async function DELETE(
 
   if (!member_id) return NextResponse.json({ error: 'member_id required' }, { status: 400 });
 
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const { data: photo } = await supabase
     .from('trip_photos')
     .select('member_id, file_path')

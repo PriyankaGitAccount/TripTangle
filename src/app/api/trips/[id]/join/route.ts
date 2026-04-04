@@ -16,7 +16,7 @@ export async function POST(
     );
   }
 
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
 
   // Check trip exists
   const { data: trip } = await supabase

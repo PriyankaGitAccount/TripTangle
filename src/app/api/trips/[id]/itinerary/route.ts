@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getItinerary } from '@/lib/claude';
 
-export const maxDuration = 30;
+export const runtime = 'edge'; // 25s limit on Hobby vs 10s for Node.js
 
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
 
   const [{ data: trip }, { data: members }, { data: suggestions }] = await Promise.all([
     supabase
@@ -67,7 +67,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
 
   const { data } = await supabase
     .from('itineraries')

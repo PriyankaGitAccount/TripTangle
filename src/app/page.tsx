@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation';
+import { createServerClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { BRAND } from '@/lib/constants';
 
@@ -33,7 +35,10 @@ const STEPS = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) redirect('/dashboard');
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden bg-[#FFFBF5]">
 

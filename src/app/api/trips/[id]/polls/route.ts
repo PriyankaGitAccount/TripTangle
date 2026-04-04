@@ -22,7 +22,7 @@ export async function POST(
     return NextResponse.json({ error: 'Options cannot be empty' }, { status: 400 });
   }
 
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from('polls')

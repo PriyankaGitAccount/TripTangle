@@ -14,7 +14,7 @@ function adminClient() {
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const { data, error } = await supabase
     .from('trip_photos')
     .select('*')
@@ -54,7 +54,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: storageError.message }, { status: 500 });
   }
 
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const { data, error: dbError } = await supabase
     .from('trip_photos')
     .insert({

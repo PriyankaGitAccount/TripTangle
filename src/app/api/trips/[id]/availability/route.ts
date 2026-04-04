@@ -16,7 +16,7 @@ export async function POST(
     );
   }
 
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
 
   // If status is null, delete the availability entry
   if (!status) {

@@ -11,7 +11,7 @@ export async function DELETE(
 
   if (!member_id) return NextResponse.json({ error: 'member_id required' }, { status: 400 });
 
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
 
   // Verify ownership — only the payer can delete
   const { data: expense } = await supabase

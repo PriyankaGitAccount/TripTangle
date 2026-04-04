@@ -1,5 +1,5 @@
 import { createServerClient } from '@/lib/supabase/server';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { PlanDashboard } from '@/components/plan/plan-dashboard';
 import type { Metadata } from 'next';
 
@@ -10,7 +10,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const { data: trip } = await supabase.from('trips').select('name').eq('id', id).single();
   return { title: trip ? `Plan — ${trip.name} — TripTangle` : 'Trip Plan' };
 }
@@ -18,9 +18,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PlanPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { tab } = await searchParams;
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
 
-  // Fetch poll IDs first so we can query responses in parallel
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect(`/login?redirect=/trip/${id}/plan`);
+
+  // Block non-members
+  const { data: member } = await supabase
+    .from('members').select('id').eq('trip_id', id).eq('user_id', user.id).single();
+  if (!member) redirect(`/trip/${id}`);
+
   const pollIdsResult = await supabase.from('polls').select('id').eq('trip_id', id);
   const pollIds = pollIdsResult.data?.map((p) => p.id) ?? [];
 

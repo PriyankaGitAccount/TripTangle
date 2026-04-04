@@ -12,7 +12,7 @@ export async function POST(
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const { data, error } = await supabase
     .from('itinerary_suggestions')
     .insert({ trip_id: id, member_id, suggestion: suggestion.trim() })
@@ -37,7 +37,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   // Only the suggestion author can delete
   await supabase
     .from('itinerary_suggestions')

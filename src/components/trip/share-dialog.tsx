@@ -84,12 +84,6 @@ export function ShareDialog({ tripId, tripName, inviteCount = 0, onInviteSent }:
     recordInvite('whatsapp');
   }
 
-  function handleCopyLink() {
-    navigator.clipboard.writeText(shareUrl);
-    toast.success('Link copied to clipboard!');
-    recordInvite('copy');
-  }
-
   return (
     <Dialog>
       <DialogTrigger
@@ -171,31 +165,6 @@ export function ShareDialog({ tripId, tripName, inviteCount = 0, onInviteSent }:
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="relative py-1">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">or</span>
-            </div>
-          </div>
-
-          {/* Copy link */}
-          <div className="flex gap-2">
-            <Input
-              readOnly
-              value={shareUrl}
-              className="h-11 flex-1 text-xs text-muted-foreground"
-            />
-            <Button
-              onClick={handleCopyLink}
-              variant="secondary"
-              className="h-11 shrink-0 rounded-xl font-semibold"
-            >
-              Copy
-            </Button>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

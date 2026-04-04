@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { useMemberIdentity } from '@/hooks/use-member-identity';
 import { useRealtimeMembers } from '@/hooks/use-realtime-members';
 import { useRealtimeAvailability } from '@/hooks/use-realtime-availability';
 import { useRealtimeVotes } from '@/hooks/use-realtime-votes';
@@ -20,6 +19,8 @@ import type { Trip, Member, Availability, AIRecommendation, Vote } from '@/types
 
 interface TripDashboardProps {
   trip: Trip;
+  currentMemberId: string;
+  currentUserRole: 'organizer' | 'member';
   initialMembers: Member[];
   initialAvailability: Availability[];
   initialRecommendation: AIRecommendation | null;
@@ -191,6 +192,8 @@ function LiveBadge() {
 
 export function TripDashboard({
   trip,
+  currentMemberId,
+  currentUserRole,
   initialMembers,
   initialAvailability,
   initialRecommendation,
@@ -198,7 +201,7 @@ export function TripDashboard({
   initialInviteCount,
 }: TripDashboardProps) {
   const router = useRouter();
-  const { memberId, isIdentified, isLoaded, setIdentity } = useMemberIdentity(trip.id);
+  const memberId = currentMemberId;
   const members = useRealtimeMembers(trip.id, initialMembers);
   const { availability, patchAvailability, removeAvailability } = useRealtimeAvailability(trip.id, initialAvailability);
   const votes = useRealtimeVotes(trip.id, initialVotes);
@@ -208,20 +211,12 @@ export function TripDashboard({
   const [autoLoading, setAutoLoading] = useState(false);
   const [inviteCount, setInviteCount] = useState(initialInviteCount);
   const hasAutoTriggered = useRef(false);
+  const revisionCountRef = useRef(0);
 
-  const MAX_REVISIONS = 3;
-  const revisionStorageKey = memberId ? `triptangle_revisions_${trip.id}_${memberId}` : null;
-  const getRevisionCount = () => {
-    if (!revisionStorageKey) return 0;
-    return parseInt(localStorage.getItem(revisionStorageKey) ?? '0', 10);
-  };
-  const incrementRevision = () => {
-    if (!revisionStorageKey) return;
-    localStorage.setItem(revisionStorageKey, String(getRevisionCount() + 1));
-  };
-  const canEditCalendar = !recommendation || getRevisionCount() < MAX_REVISIONS;
+  const canEditCalendar = !recommendation || revisionCountRef.current < 3;
+  const incrementRevision = () => { revisionCountRef.current += 1; };
 
-  const isCreator = trip.creator_member_id === memberId;
+  const isCreator = currentUserRole === 'organizer';
   const isLocked = !!tripState.locked_dates_start;
   const submittedMemberIds = new Set(availability.map((a) => a.member_id));
   const submittedCount = submittedMemberIds.size;
@@ -274,33 +269,10 @@ export function TripDashboard({
     }
   }, [allSubmitted, recommendation, autoLoading, autoTrigger]);
 
+  // Redirect to plan when dates get locked via realtime
   useEffect(() => {
-    if (isLoaded && isLocked && isIdentified) {
-      router.push(`/trip/${trip.id}/plan`);
-    }
-  }, [isLoaded, isLocked, isIdentified, trip.id, router]);
-
-  if (!isLoaded) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-3 border-brand-amber/20 border-t-brand-bright" />
-      </div>
-    );
-  }
-
-  // New member — show inline join view with heatmap context
-  if (!isIdentified) {
-    return (
-      <JoinView
-        trip={trip}
-        members={members}
-        availability={availability}
-        onJoin={(memberId, displayName) => {
-          setIdentity(memberId, displayName);
-        }}
-      />
-    );
-  }
+    if (isLocked) router.push(`/trip/${trip.id}/plan`);
+  }, [isLocked, trip.id, router]);
 
   function handleLock(start: string, end: string) {
     setTripState((prev) => ({ ...prev, locked_dates_start: start, locked_dates_end: end }));
