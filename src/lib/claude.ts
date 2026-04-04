@@ -385,7 +385,7 @@ export async function getItinerary(
 
   const response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 2500,
+    max_tokens: 4096,
     system: `You are an expert travel planner. Generate a detailed day-by-day group trip itinerary.
 Return ONLY valid JSON — no markdown, no extra keys. Exact shape:
 {
@@ -442,6 +442,10 @@ Generate a complete ${days}-day itinerary. Day 1 is arrival day, last day is dep
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '';
   const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('Claude returned no JSON object');
-  return JSON.parse(match[0]) as ItineraryData;
+  if (!match) throw new Error('Claude returned no JSON for itinerary');
+  try {
+    return JSON.parse(match[0]) as ItineraryData;
+  } catch {
+    throw new Error('Claude returned malformed JSON — likely truncated. Try a shorter date range or fewer days.');
+  }
 }
