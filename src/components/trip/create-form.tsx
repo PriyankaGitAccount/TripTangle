@@ -125,7 +125,7 @@ export function CreateTripForm() {
   const [loading, setLoading] = useState(false);
   const [destination, setDestination] = useState('');
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
   const [dateStart, setDateStart] = useState(todayStr);
   const [dateEnd, setDateEnd] = useState('');
   const [dateEndError, setDateEndError] = useState('');
@@ -256,6 +256,7 @@ export function CreateTripForm() {
             required
             value={dateStart}
             min={todayStr}
+            autoComplete="off"
             onChange={(e) => handleStartChange(e.target.value)}
             className="h-12"
           />
@@ -268,7 +269,8 @@ export function CreateTripForm() {
             type="date"
             required
             value={dateEnd}
-            min={dateStart}
+            min={dateStart || todayStr}
+            autoComplete="off"
             onChange={(e) => handleEndChange(e.target.value)}
             className={`h-12 ${dateEndError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
           />
