@@ -8,14 +8,15 @@ import { Suspense } from 'react';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/dashboard';
+  const initialStep = searchParams.get('step') as 'email' | 'sent' | 'name' | null;
+  const next = searchParams.get('next') || '/dashboard';
+  const errorParam = searchParams.get('error');
 
-  const [step, setStep] = useState<'email' | 'otp' | 'name'>('email');
+  const [step, setStep] = useState<'email' | 'sent' | 'name'>(initialStep || 'email');
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(errorParam || '');
   const [resendCountdown, setResendCountdown] = useState(0);
 
   const supabase = createClient();
@@ -26,54 +27,40 @@ function LoginForm() {
     return () => clearTimeout(t);
   }, [resendCountdown]);
 
-  async function handleSendOtp(e: React.FormEvent) {
+  async function handleSendLink(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
-        options: { shouldCreateUser: true },
+        options: { shouldCreateUser: true, emailRedirectTo: redirectTo },
       });
       if (error) throw error;
-      setStep('otp');
+      setStep('sent');
       setResendCountdown(60);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to send OTP');
+      setError(err instanceof Error ? err.message : 'Failed to send email');
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleVerifyOtp(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleResend() {
+    if (resendCountdown > 0) return;
     setLoading(true);
     setError('');
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+      const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
-        token: otp.trim(),
-        type: 'email',
+        options: { shouldCreateUser: true, emailRedirectTo: redirectTo },
       });
       if (error) throw error;
-
-      // Check if profile exists
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('display_name')
-        .eq('id', data.user!.id)
-        .single();
-
-      if (profile?.display_name) {
-        // Returning user — go straight to destination
-        router.push(redirect);
-        router.refresh();
-      } else {
-        // New user — collect name
-        setStep('name');
-      }
+      setResendCountdown(60);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Invalid OTP — please try again');
+      setError(err instanceof Error ? err.message : 'Failed to resend');
     } finally {
       setLoading(false);
     }
@@ -85,7 +72,7 @@ function LoginForm() {
     setError('');
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Session lost — please log in again');
+      if (!user) throw new Error('Session expired — please log in again');
 
       const { error } = await supabase.from('user_profiles').upsert({
         id: user.id,
@@ -94,7 +81,7 @@ function LoginForm() {
       });
       if (error) throw error;
 
-      router.push(redirect);
+      router.push(next);
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save profile');
@@ -103,29 +90,14 @@ function LoginForm() {
     }
   }
 
-  async function handleResend() {
-    if (resendCountdown > 0) return;
-    setLoading(true);
-    setError('');
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase(),
-        options: { shouldCreateUser: true },
-      });
-      if (error) throw error;
-      setResendCountdown(60);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to resend');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const stepIndex = { email: 0, sent: 1, name: 2 }[step];
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
-      style={{ background: 'linear-gradient(135deg, #EBF5FB 0%, #FEF9EE 100%)' }}>
-
-      {/* Logo / brand */}
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
+      style={{ background: 'linear-gradient(135deg, #EBF5FB 0%, #FEF9EE 100%)' }}
+    >
+      {/* Brand */}
       <div className="mb-8 text-center">
         <div className="text-4xl mb-2">🌴</div>
         <h1 className="text-3xl font-black text-brand-deep tracking-tight">TripTangle</h1>
@@ -137,21 +109,20 @@ function LoginForm() {
 
           {/* Progress dots */}
           <div className="flex gap-1.5 justify-center pt-5">
-            {(['email', 'otp', 'name'] as const).map((s, i) => (
-              <div key={s} className={`h-1.5 rounded-full transition-all ${
-                s === step ? 'w-6 bg-brand-bright' :
-                i < ['email','otp','name'].indexOf(step) ? 'w-3 bg-brand-bright/40' :
-                'w-3 bg-muted'
+            {[0, 1, 2].map((i) => (
+              <div key={i} className={`h-1.5 rounded-full transition-all ${
+                i === stepIndex ? 'w-6 bg-brand-bright' :
+                i < stepIndex ? 'w-3 bg-brand-bright/40' : 'w-3 bg-muted'
               }`} />
             ))}
           </div>
 
           {/* ── Step 1: Email ── */}
           {step === 'email' && (
-            <form onSubmit={handleSendOtp} className="p-7 space-y-5">
+            <form onSubmit={handleSendLink} className="p-7 space-y-5">
               <div className="text-center space-y-1">
                 <h2 className="text-xl font-bold text-brand-deep">Welcome!</h2>
-                <p className="text-sm text-muted-foreground">Enter your email to get started</p>
+                <p className="text-sm text-muted-foreground">Enter your email to get a sign-in link</p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -174,66 +145,45 @@ function LoginForm() {
                 className="w-full rounded-xl py-3.5 text-sm font-bold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.98]"
                 style={{ background: 'linear-gradient(135deg, #1A5276 0%, #2980B9 100%)' }}
               >
-                {loading ? 'Sending…' : 'Send OTP →'}
+                {loading ? 'Sending…' : 'Send sign-in link →'}
               </button>
             </form>
           )}
 
-          {/* ── Step 2: OTP ── */}
-          {step === 'otp' && (
-            <form onSubmit={handleVerifyOtp} className="p-7 space-y-5">
-              <div className="text-center space-y-1">
+          {/* ── Step 2: Check inbox ── */}
+          {step === 'sent' && (
+            <div className="p-7 space-y-5 text-center">
+              <div className="space-y-2">
+                <div className="text-5xl">📬</div>
                 <h2 className="text-xl font-bold text-brand-deep">Check your inbox</h2>
                 <p className="text-sm text-muted-foreground">
-                  We sent a 6-digit code to<br />
+                  We sent a sign-in link to<br />
                   <span className="font-semibold text-foreground">{email}</span>
                 </p>
+                <p className="text-xs text-muted-foreground pt-1">
+                  Click the link in the email to sign in.<br />
+                  Check your spam folder if you don't see it.
+                </p>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                  6-digit code
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  placeholder="123456"
-                  required
-                  autoFocus
-                  className="w-full rounded-xl border border-border/60 bg-muted/20 px-4 py-3 text-sm text-center tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-brand-bright"
-                />
-              </div>
-              {error && <p className="text-xs text-red-500 text-center">{error}</p>}
-              <button
-                type="submit"
-                disabled={loading || otp.length !== 6}
-                className="w-full rounded-xl py-3.5 text-sm font-bold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg, #1A5276 0%, #2980B9 100%)' }}
-              >
-                {loading ? 'Verifying…' : 'Verify →'}
-              </button>
-              <div className="text-center">
+              {error && <p className="text-xs text-red-500">{error}</p>}
+              <div className="flex flex-col gap-2 pt-2">
                 <button
                   type="button"
                   onClick={handleResend}
                   disabled={resendCountdown > 0 || loading}
-                  className="text-xs text-muted-foreground hover:text-brand-bright disabled:opacity-40 transition-colors"
+                  className="w-full rounded-xl border border-border py-3 text-sm font-semibold text-brand-bright disabled:opacity-40 hover:bg-brand-light transition-colors"
                 >
-                  {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : 'Resend code'}
+                  {loading ? 'Sending…' : resendCountdown > 0 ? `Resend in ${resendCountdown}s` : 'Resend link'}
                 </button>
-                <span className="mx-2 text-muted-foreground/40">·</span>
                 <button
                   type="button"
-                  onClick={() => { setStep('email'); setOtp(''); setError(''); }}
-                  className="text-xs text-muted-foreground hover:text-brand-bright transition-colors"
+                  onClick={() => { setStep('email'); setError(''); }}
+                  className="text-xs text-muted-foreground hover:text-brand-bright transition-colors py-1"
                 >
-                  Change email
+                  Use a different email
                 </button>
               </div>
-            </form>
+            </div>
           )}
 
           {/* ── Step 3: Display name (new users only) ── */}
@@ -241,8 +191,8 @@ function LoginForm() {
             <form onSubmit={handleSaveName} className="p-7 space-y-5">
               <div className="text-center space-y-1">
                 <div className="text-3xl mb-1">👋</div>
-                <h2 className="text-xl font-bold text-brand-deep">What's your name?</h2>
-                <p className="text-sm text-muted-foreground">This is how your group will see you</p>
+                <h2 className="text-xl font-bold text-brand-deep">One last thing</h2>
+                <p className="text-sm text-muted-foreground">What should your group call you?</p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -266,14 +216,14 @@ function LoginForm() {
                 className="w-full rounded-xl py-3.5 text-sm font-bold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.98]"
                 style={{ background: 'linear-gradient(135deg, #27AE60 0%, #2980B9 100%)' }}
               >
-                {loading ? 'Saving…' : 'Let\'s go 🌴'}
+                {loading ? 'Saving…' : "Let's go 🌴"}
               </button>
             </form>
           )}
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          No password. No spam. Just a quick code.
+          No password needed. Just a link in your email.
         </p>
       </div>
     </div>
