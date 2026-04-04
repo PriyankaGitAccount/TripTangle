@@ -385,57 +385,43 @@ export async function getItinerary(
 
   const response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
-    system: `You are an expert travel planner. Generate a detailed day-by-day group trip itinerary.
-Return ONLY valid JSON — no markdown, no extra keys. Exact shape:
+    max_tokens: 3000,
+    system: `You are a travel planner. Return ONLY valid JSON, no markdown. Exact shape:
 {
   "destination": "City, Country",
   "destination_lat": number,
   "destination_lng": number,
-  "season": "Season name and month e.g. Summer — July",
-  "weather_context": "1-2 sentences: typical temp range, humidity, what to pack, any weather cautions",
-  "summary": "2-3 sentence trip overview that mentions the season and what makes this timing special or challenging",
+  "season": "e.g. Summer — July",
+  "weather_context": "One sentence: temp range and what to expect.",
+  "summary": "One sentence trip overview.",
   "days": [
     {
       "day": 1,
       "date": "YYYY-MM-DD",
-      "theme": "Arrival & neighbourhood name",
+      "theme": "Short theme e.g. Arrival & Old Town",
       "activities": [
         {
           "time": "Morning",
-          "title": "Specific activity name",
-          "place_name": "Exact venue/place name as it appears on Google Maps e.g. Sacré-Cœur Basilica",
-          "description": "2-3 sentences. Name real streets, menu items, entry prices, opening hours if known. Be hyper-specific.",
+          "title": "Activity name",
+          "place_name": "Exact Google Maps venue name",
+          "description": "One concise sentence with a specific detail (price, dish, tip).",
           "category": "accommodation" | "restaurant" | "activity" | "transport"
         }
       ]
     }
   ],
-  "tips": [
-    "7-10 hyper-local practical tips. Include: tipping customs, transport cards, booking ahead requirements, local scams to avoid, best grocery stores, SIM card advice, cultural etiquette."
-  ],
-  "search_queries": [
-    "8-12 specific YouTube/blog search queries. Mix: neighbourhood guides, food tours, day trips, budget tips, hidden gems, seasonal events."
-  ]
+  "tips": ["5 practical local tips"],
+  "search_queries": ["5 specific YouTube search queries for this destination"]
 }
-
-Critical rules:
-- destination_lat/lng = accurate city centre coordinates
-- Exactly 3 activities per day (Morning, Afternoon, Evening)
-- place_name must be the real name as it appears on Google Maps — this powers place search
-- Tailor activities to the season: summer → outdoor/beach/festivals; winter → museums/cosy cafes/markets; etc.
-- Account for weather in activity choice and descriptions
-- search_queries must be specific enough to return useful YouTube vlogs and travel blogs`,
+Rules: destination_lat/lng must be accurate. Exactly 3 activities per day (Morning, Afternoon, Evening). place_name powers Google Maps search — use the real name.`,
     messages: [
       {
         role: 'user',
-        content: `Trip: "${tripName}"
-Destination: ${destination}
-Travel dates: ${dateStart} to ${dateEnd} (${days} days)
-Season: ${season}
-Group size: ${memberCount} people${suggestionsBlock}
+        content: `Trip: "${tripName}" to ${destination}
+Dates: ${dateStart} to ${dateEnd} (${days} days), ${season}
+Group: ${memberCount} people${suggestionsBlock}
 
-Generate a complete ${days}-day itinerary. Day 1 is arrival day, last day is departure.`,
+Generate a ${days}-day itinerary. Day 1 = arrival, last day = departure.`,
       },
     ],
   });
