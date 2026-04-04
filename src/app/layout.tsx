@@ -16,7 +16,14 @@ export const metadata: Metadata = {
     title: 'TripTangle — Untangle your group trip',
     description:
       'AI-powered group travel coordination. Get everyone to agree on dates in under 10 minutes.',
+    url: 'https://triptangle.vercel.app',
+    siteName: 'TripTangle',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'TripTangle — Untangle your group trip',
+    description: 'AI-powered group travel coordination. Get everyone to agree on dates in under 10 minutes.',
   },
 };
 

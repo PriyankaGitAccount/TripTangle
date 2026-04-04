@@ -12,12 +12,35 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = createServerClient();
   const { data: trip } = await supabase
     .from('trips')
-    .select('name')
+    .select('name, destination, date_range_start, date_range_end')
     .eq('id', id)
     .single();
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://triptangle.vercel.app';
+  const url = `${baseUrl}/trip/${id}`;
+
+  if (!trip) return { title: 'Trip Not Found — TripTangle' };
+
+  const title = `${trip.name} — TripTangle`;
+  const description = trip.destination
+    ? `You're invited to plan a trip to ${trip.destination}! Pick your available dates and let TripTangle find the best time for everyone.`
+    : `You're invited to plan a group trip! Pick your available dates and let TripTangle find the best time for everyone.`;
+
   return {
-    title: trip ? `${trip.name} — TripTangle` : 'Trip Not Found',
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: 'TripTangle',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary',
+      title,
+      description,
+    },
   };
 }
 
