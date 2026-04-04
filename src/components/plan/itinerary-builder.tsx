@@ -362,12 +362,14 @@ export function ItineraryBuilder({
     onLoadingChange?.(true);
     try {
       const res = await fetch(`/api/trips/${tripId}/itinerary`, { method: 'POST' });
-      if (!res.ok) {
-        const { error } = await res.json();
-        throw new Error(error || 'Failed to generate');
+      let body: Record<string, unknown>;
+      try {
+        body = await res.json();
+      } catch {
+        throw new Error('Itinerary generation timed out — please try again');
       }
-      const { itinerary: saved } = await res.json();
-      onItineraryChange(saved);
+      if (!res.ok) throw new Error((body.error as string) || 'Failed to generate');
+      onItineraryChange(body.itinerary as Itinerary);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Something went wrong');
     } finally {

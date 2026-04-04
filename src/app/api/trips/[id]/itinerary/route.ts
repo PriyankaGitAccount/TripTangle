@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getItinerary } from '@/lib/claude';
 
+export const maxDuration = 60; // seconds — Vercel Hobby max
+
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
