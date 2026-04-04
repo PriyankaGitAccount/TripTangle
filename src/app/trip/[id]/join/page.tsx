@@ -57,36 +57,38 @@ export default function JoinPage() {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-6 py-10">
-      <div className="w-full max-w-sm text-center">
-        <div className="mb-6 text-5xl">🌴</div>
-        <h1 className="mb-2 text-2xl font-bold text-brand-deep">
-          Join the Trip
-        </h1>
-        <p className="mb-8 text-muted-foreground">
-          Enter your name to get started
-        </p>
+      <div className="w-full max-w-sm">
+        <div className="rounded-2xl bg-card shadow-md p-8 text-center">
+          <div className="mb-6 text-5xl">🌴</div>
+          <h1 className="mb-2 text-2xl font-bold text-brand-deep">
+            Join the Trip
+          </h1>
+          <p className="mb-8 text-muted-foreground">
+            Enter your name to get started
+          </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2 text-left">
-            <Label htmlFor="displayName">Your Name</Label>
-            <Input
-              id="displayName"
-              name="displayName"
-              placeholder="What should we call you?"
-              required
-              maxLength={50}
-              autoFocus
-              className="h-12 text-center text-lg"
-            />
-          </div>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="h-14 w-full rounded-xl bg-brand-green text-lg font-semibold text-white shadow-md hover:bg-brand-green/90 active:scale-[0.98]"
-          >
-            {loading ? 'Joining...' : 'Join Trip'}
-          </Button>
-        </form>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2 text-left">
+              <Label htmlFor="displayName">Your Name</Label>
+              <Input
+                id="displayName"
+                name="displayName"
+                placeholder="What should we call you?"
+                required
+                maxLength={50}
+                autoFocus
+                className="h-12 text-center text-lg"
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="h-14 w-full rounded-xl bg-brand-green text-lg font-semibold text-white shadow-md hover:bg-brand-green/90 active:scale-[0.98]"
+            >
+              {loading ? 'Joining...' : 'Join Trip'}
+            </Button>
+          </form>
+        </div>
       </div>
     </div>
   );

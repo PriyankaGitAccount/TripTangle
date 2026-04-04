@@ -47,48 +47,48 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* TripTangle brand colors */
-  --color-brand-deep: #1A5276;
-  --color-brand-bright: #2980B9;
-  --color-brand-green: #27AE60;
-  --color-brand-amber: #F39C12;
-  --color-brand-red: #E74C3C;
-  --color-brand-light: #EBF5FB;
+  /* TripTangle brand colors — warm travel palette */
+  --color-brand-deep: #9A3412;
+  --color-brand-bright: #EA580C;
+  --color-brand-green: #16A34A;
+  --color-brand-amber: #D97706;
+  --color-brand-red: #DC2626;
+  --color-brand-light: #FFF7ED;
 }
 
 :root {
-  --background: oklch(0.985 0.002 247);
-  --foreground: oklch(0.205 0.02 255);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.205 0.02 255);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.205 0.02 255);
-  --primary: oklch(0.35 0.08 245);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.95 0.01 245);
-  --secondary-foreground: oklch(0.35 0.08 245);
-  --muted: oklch(0.96 0.005 247);
-  --muted-foreground: oklch(0.5 0.02 247);
+  --background: oklch(0.98 0.008 65);
+  --foreground: oklch(0.22 0.02 50);
+  --card: oklch(0.995 0.003 70);
+  --card-foreground: oklch(0.22 0.02 50);
+  --popover: oklch(0.995 0.003 70);
+  --popover-foreground: oklch(0.22 0.02 50);
+  --primary: oklch(0.50 0.14 38);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.01 55);
+  --secondary-foreground: oklch(0.40 0.08 38);
+  --muted: oklch(0.96 0.008 60);
+  --muted-foreground: oklch(0.52 0.02 50);
   --accent: oklch(0.58 0.16 152);
   --accent-foreground: oklch(1 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.91 0.01 247);
-  --input: oklch(0.91 0.01 247);
-  --ring: oklch(0.45 0.1 245);
-  --chart-1: oklch(0.35 0.08 245);
-  --chart-2: oklch(0.52 0.14 245);
+  --border: oklch(0.92 0.008 55);
+  --input: oklch(0.92 0.008 55);
+  --ring: oklch(0.55 0.14 38);
+  --chart-1: oklch(0.50 0.14 38);
+  --chart-2: oklch(0.60 0.16 50);
   --chart-3: oklch(0.58 0.16 152);
   --chart-4: oklch(0.72 0.15 85);
   --chart-5: oklch(0.577 0.245 27.325);
   --radius: 0.75rem;
-  --sidebar: oklch(0.985 0.002 247);
-  --sidebar-foreground: oklch(0.205 0.02 255);
-  --sidebar-primary: oklch(0.35 0.08 245);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.95 0.01 245);
-  --sidebar-accent-foreground: oklch(0.35 0.08 245);
-  --sidebar-border: oklch(0.91 0.01 247);
-  --sidebar-ring: oklch(0.45 0.1 245);
+  --sidebar: oklch(0.98 0.008 65);
+  --sidebar-foreground: oklch(0.22 0.02 50);
+  --sidebar-primary: oklch(0.50 0.14 38);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.96 0.01 55);
+  --sidebar-accent-foreground: oklch(0.40 0.08 38);
+  --sidebar-border: oklch(0.92 0.008 55);
+  --sidebar-ring: oklch(0.55 0.14 38);
 }
 
 .dark {

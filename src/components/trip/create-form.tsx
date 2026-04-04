@@ -18,12 +18,13 @@ export function CreateTripForm() {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const name = (form.get('name') as string).trim();
+    const destination = (form.get('destination') as string).trim();
     const description = (form.get('description') as string).trim();
     const dateStart = form.get('dateStart') as string;
     const dateEnd = form.get('dateEnd') as string;
     const displayName = (form.get('displayName') as string).trim();
 
-    if (!name || !dateStart || !dateEnd || !displayName) {
+    if (!name || !destination || !dateStart || !dateEnd || !displayName) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -45,6 +46,7 @@ export function CreateTripForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
+          destination,
           description,
           date_range_start: dateStart,
           date_range_end: dateEnd,
@@ -102,6 +104,18 @@ export function CreateTripForm() {
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="destination">Destination *</Label>
+        <Input
+          id="destination"
+          name="destination"
+          placeholder="Paris, Bali, New York…"
+          required
+          maxLength={100}
+          className="h-12"
+        />
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
@@ -151,13 +165,17 @@ export function CreateTripForm() {
         />
       </div>
 
-      <Button
+      <button
         type="submit"
         disabled={loading}
-        className="h-14 w-full rounded-xl bg-brand-green text-lg font-semibold text-white shadow-md transition-all hover:bg-brand-green/90 active:scale-[0.98]"
+        className="h-14 w-full rounded-2xl text-lg font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:scale-[1.01] active:scale-[0.98] disabled:opacity-60"
+        style={{
+          background: 'linear-gradient(135deg, #EA580C 0%, #D97706 100%)',
+          boxShadow: '0 4px 20px rgba(234,88,12,0.25)',
+        }}
       >
         {loading ? 'Creating...' : 'Create Trip'}
-      </Button>
+      </button>
     </form>
   );
 }

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { getDatesBetween, getDayOfWeek } from '@/lib/trip-utils';
 import { AVAILABILITY_CYCLE } from '@/lib/constants';
 import type { Availability, AvailabilityStatus } from '@/types';
+
 import { DateCell } from './date-cell';
 
 interface CalendarGridProps {
@@ -13,6 +14,8 @@ interface CalendarGridProps {
   dateRangeStart: string;
   dateRangeEnd: string;
   availability: Availability[];
+  onSave?: (record: Availability) => void;
+  onRemove?: (memberId: string, date: string) => void;
 }
 
 export function CalendarGrid({
@@ -21,6 +24,8 @@ export function CalendarGrid({
   dateRangeStart,
   dateRangeEnd,
   availability,
+  onSave,
+  onRemove,
 }: CalendarGridProps) {
   const dates = getDatesBetween(dateRangeStart, dateRangeEnd);
   const myAvailability = availability.filter((a) => a.member_id === memberId);
@@ -65,14 +70,16 @@ export function CalendarGrid({
               }),
             });
             if (!res.ok) throw new Error();
-            // Clear local override after server confirms
-            setLocalStatus((prev) => {
-              const updated = new Map(prev);
-              updated.delete(date);
-              return updated;
-            });
+            const { record } = await res.json();
+            // Immediately patch the shared availability state so heatmap updates
+            if (next === null) {
+              onRemove?.(memberId, date);
+            } else if (record) {
+              onSave?.(record);
+            }
           } catch {
             toast.error('Failed to save availability');
+            // Revert optimistic update on error
             setLocalStatus((prev) => {
               const updated = new Map(prev);
               updated.delete(date);
@@ -94,28 +101,23 @@ export function CalendarGrid({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground">
-          Your Availability
-        </h3>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-sm bg-brand-green" />
-            Free
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-sm bg-brand-amber" />
-            Maybe
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-sm bg-brand-red" />
-            Busy
-          </span>
-        </div>
+      <div className="flex items-center justify-end gap-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-md bg-emerald-500" />
+          Free
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-md bg-amber-500" />
+          Maybe
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-md bg-red-400" />
+          Busy
+        </span>
       </div>
 
       {/* Week day headers */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1.5">
         {weekDays.map((day) => (
           <div
             key={day}
@@ -127,7 +129,7 @@ export function CalendarGrid({
       </div>
 
       {/* Date cells */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1.5">
         {/* Padding for first week */}
         {Array.from({ length: startPadding }).map((_, i) => (
           <div key={`pad-${i}`} />

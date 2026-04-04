@@ -30,17 +30,21 @@ export async function POST(
     return NextResponse.json({ ok: true });
   }
 
-  // Upsert availability
-  const { error } = await supabase.from('availability').upsert(
-    {
-      member_id,
-      trip_id: id,
-      date,
-      status,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'member_id,trip_id,date' }
-  );
+  // Upsert availability — return the saved record so the client can update state immediately
+  const { data, error } = await supabase
+    .from('availability')
+    .upsert(
+      {
+        member_id,
+        trip_id: id,
+        date,
+        status,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'member_id,trip_id,date' }
+    )
+    .select()
+    .single();
 
   if (error) {
     return NextResponse.json(
@@ -49,5 +53,5 @@ export async function POST(
     );
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, record: data });
 }

@@ -47,7 +47,7 @@ export function ShareDialog({ tripId, tripName }: ShareDialogProps) {
   return (
     <Dialog>
       <DialogTrigger
-        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-brand-bright/30 bg-background px-4 text-sm font-medium text-brand-bright transition-colors hover:bg-brand-bright/5"
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-white shadow-sm px-4 text-sm font-medium text-brand-bright transition-all hover:shadow-md"
       >
         <svg
           width="18"

@@ -7,10 +7,11 @@ import { Badge } from '@/components/ui/badge';
 
 interface TripHeaderProps {
   trip: Trip;
+  isLocked?: boolean;
 }
 
-export function TripHeader({ trip }: TripHeaderProps) {
-  const isLocked = !!trip.locked_dates_start;
+export function TripHeader({ trip, isLocked: lockedProp }: TripHeaderProps) {
+  const isLocked = lockedProp ?? !!trip.locked_dates_start;
 
   return (
     <div className="space-y-3">
@@ -25,7 +26,7 @@ export function TripHeader({ trip }: TripHeaderProps) {
             </p>
           )}
         </div>
-        <ShareDialog tripId={trip.id} tripName={trip.name} />
+        {!isLocked && <ShareDialog tripId={trip.id} tripName={trip.name} />}
       </div>
 
       <div className="flex items-center gap-2">

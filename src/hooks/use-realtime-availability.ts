@@ -52,5 +52,21 @@ export function useRealtimeAvailability(
     };
   }, [tripId]);
 
-  return availability;
+  function patchAvailability(record: Availability) {
+    setAvailability((prev) => {
+      const idx = prev.findIndex(
+        (a) => a.member_id === record.member_id && a.date === record.date
+      );
+      if (idx >= 0) return prev.map((a, i) => (i === idx ? record : a));
+      return [...prev, record];
+    });
+  }
+
+  function removeAvailability(memberId: string, date: string) {
+    setAvailability((prev) =>
+      prev.filter((a) => !(a.member_id === memberId && a.date === date))
+    );
+  }
+
+  return { availability, patchAvailability, removeAvailability };
 }

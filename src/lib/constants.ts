@@ -2,12 +2,12 @@ export const BRAND = {
   name: 'TripTangle',
   tagline: 'Untangle your group trip',
   colors: {
-    deep: '#1A5276',
-    bright: '#2980B9',
-    green: '#27AE60',
-    amber: '#F39C12',
-    red: '#E74C3C',
-    light: '#EBF5FB',
+    deep: '#9A3412',
+    bright: '#EA580C',
+    green: '#16A34A',
+    amber: '#D97706',
+    red: '#DC2626',
+    light: '#FFF7ED',
   },
 } as const;
 
@@ -33,4 +33,4 @@ export const HEATMAP_COLORS = [
 ] as const;
 
 export const MAX_DATE_RANGE_DAYS = 60;
-export const MIN_MEMBERS_FOR_AI = 3;
+export const MIN_MEMBERS_FOR_AI = 2;

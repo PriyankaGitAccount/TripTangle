@@ -4,7 +4,7 @@ import { generateTripId } from '@/lib/trip-utils';
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { name, description, date_range_start, date_range_end, display_name } =
+  const { name, description, destination, date_range_start, date_range_end, display_name } =
     body;
 
   if (!name?.trim() || !date_range_start || !date_range_end || !display_name?.trim()) {
@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
     id: tripId,
     name: name.trim(),
     description: (description || '').trim(),
+    destination: (destination || '').trim(),
     date_range_start,
     date_range_end,
   });
@@ -64,8 +65,43 @@ export async function POST(request: NextRequest) {
     .update({ creator_member_id: member.id })
     .eq('id', tripId);
 
+  // Create a demo member "Sam" with pre-seeded availability
+  const { data: demoMember } = await supabase
+    .from('members')
+    .insert({ trip_id: tripId, display_name: 'Sam', status: 'joined' })
+    .select('id')
+    .single();
+
+  if (demoMember) {
+    const allDates = generateDatesInRange(date_range_start, date_range_end);
+    const availabilityRows = allDates.map((date, index) => {
+      const dow = new Date(date + 'T00:00:00').getDay(); // 0=Sun, 6=Sat
+      let status: string;
+      if (index < 7) {
+        status = dow === 0 || dow === 6 ? 'maybe' : 'available';
+      } else if (index < 14) {
+        status = dow === 0 || dow === 6 ? 'unavailable' : 'maybe';
+      } else {
+        status = 'unavailable';
+      }
+      return { trip_id: tripId, member_id: demoMember.id, date, status };
+    });
+    await supabase.from('availability').insert(availabilityRows);
+  }
+
   return NextResponse.json({
     trip_id: tripId,
     member_id: member.id,
   });
+}
+
+function generateDatesInRange(start: string, end: string): string[] {
+  const dates: string[] = [];
+  const current = new Date(start + 'T00:00:00');
+  const endDate = new Date(end + 'T00:00:00');
+  while (current <= endDate) {
+    dates.push(current.toISOString().split('T')[0]);
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
 }
