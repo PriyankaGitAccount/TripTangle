@@ -31,7 +31,7 @@ export function VotePoll({
   const [voting, setVoting] = useState(false);
   const [locking, setLocking] = useState(false);
 
-  const options = [recommendation.best, recommendation.runner_up];
+  const options = [recommendation.best, ...(recommendation.runner_up ? [recommendation.runner_up] : [])];
   const myVote = votes.find((v) => v.member_id === memberId);
 
   // Count votes per option
@@ -76,6 +76,7 @@ export function VotePoll({
 
   async function handleLock() {
     const winner = options[winnerIndex >= 0 ? winnerIndex : 0];
+    if (!winner) return;
     setLocking(true);
     try {
       const res = await fetch(`/api/trips/${tripId}/lock`, {

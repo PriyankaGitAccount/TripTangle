@@ -97,9 +97,12 @@ function AddExpenseForm({
     );
   }
 
+  const parsed = parseFloat(amount);
+  const amountValid = !!parsed && parsed > 0;
+  const descValid = description.trim().length > 0;
+
   async function handleSave() {
-    const parsed = parseFloat(amount);
-    if (!parsed || parsed <= 0 || !description.trim() || splitAmong.length === 0) return;
+    if (!amountValid || !descValid || splitAmong.length === 0) return;
     setSaving(true);
     await onSave({ paid_by_member_id: paidBy, amount: parsed, description: description.trim(), category, split_among: splitAmong });
     setSaving(false);
@@ -109,8 +112,9 @@ function AddExpenseForm({
     <div className="rounded-2xl bg-card shadow-lg p-5 space-y-4 border border-border/50">
       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">New Expense</p>
 
-      {/* Amount + Description */}
-      <div className="flex gap-2">
+      {/* Amount */}
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">Amount</p>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">₹</span>
           <input
@@ -120,16 +124,21 @@ function AddExpenseForm({
             placeholder="0.00"
             min="0"
             step="0.01"
-            className="w-28 rounded-xl bg-background shadow-sm pl-7 pr-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-bright"
+            autoFocus
+            className="w-full rounded-xl bg-background shadow-sm pl-7 pr-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-bright"
           />
         </div>
+      </div>
+
+      {/* Description */}
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">Description</p>
         <input
-          autoFocus
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="What was it for?"
+          placeholder="What was it for? e.g. Dinner at Mercado"
           maxLength={200}
-          className="flex-1 rounded-xl bg-background shadow-sm px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-bright"
+          className="w-full rounded-xl bg-background shadow-sm px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-bright"
         />
       </div>
 
@@ -200,10 +209,15 @@ function AddExpenseForm({
       </div>
 
       {/* Actions */}
+      {(!amountValid || !descValid) && (amount || description) && (
+        <p className="text-[11px] text-red-500 -mt-1">
+          {!amountValid ? 'Enter a valid amount.' : 'Add a description.'}
+        </p>
+      )}
       <div className="flex gap-2 pt-1">
         <button
           onClick={handleSave}
-          disabled={saving || !amount || parseFloat(amount) <= 0 || !description.trim() || splitAmong.length === 0}
+          disabled={saving || !amountValid || !descValid || splitAmong.length === 0}
           className="flex-1 rounded-xl bg-brand-bright py-2.5 text-sm font-bold text-white disabled:opacity-50 hover:bg-brand-bright/90 transition-colors"
         >
           {saving ? 'Saving…' : 'Add Expense'}
@@ -340,114 +354,142 @@ export function BudgetTracker({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-6 w-full">
 
-      {/* ── Summary strip ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="col-span-2 sm:col-span-1 rounded-2xl bg-brand-deep text-white p-4 shadow-md">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">Total Spent</p>
-          <p className="text-2xl font-black mt-1">₹{fmt(totalSpend)}</p>
-          <p className="text-[11px] text-white/50 mt-0.5">{expenses.length} expense{expenses.length !== 1 ? 's' : ''}</p>
-        </div>
-        {categoryTotals.filter((c) => c.total > 0).slice(0, 3).map((cat) => (
-          <div key={cat.id} className={`rounded-2xl p-4 shadow-sm ${cat.bg}`}>
-            <p className="text-lg">{cat.emoji}</p>
-            <p className={`text-xs font-bold mt-1 ${cat.color}`}>{cat.label}</p>
-            <p className={`text-base font-black ${cat.color}`}>₹{fmt(cat.total)}</p>
+      {/* ════════════════════════════════════════
+          SECTION 1 — Total Spent + Expense List
+          ════════════════════════════════════════ */}
+      <div className="rounded-2xl bg-card shadow-md overflow-hidden">
+        {/* Header: total + add button */}
+        <div className="flex items-center justify-between px-5 py-4 bg-brand-deep">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">Total Spent</p>
+            <p className="text-2xl font-black text-white mt-0.5">₹{fmt(totalSpend)}</p>
+            <p className="text-[11px] text-white/50">{expenses.length} expense{expenses.length !== 1 ? 's' : ''}</p>
           </div>
-        ))}
-      </div>
-
-      {/* ── Add expense button / form ── */}
-      {!showForm ? (
-        <button
-          onClick={() => setShowForm(true)}
-          className="w-full rounded-2xl border-2 border-dashed border-border/50 py-4 text-sm font-semibold text-muted-foreground hover:border-brand-bright/50 hover:text-brand-bright hover:bg-brand-bright/5 transition-all"
-        >
-          + Add Expense
-        </button>
-      ) : (
-        <AddExpenseForm
-          members={members}
-          currentMemberId={currentMemberId}
-          onSave={addExpense}
-          onCancel={() => setShowForm(false)}
-        />
-      )}
-
-      {expenses.length > 0 && (
-        <>
-          {/* ── Category filter ── */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {!showForm && (
             <button
-              onClick={() => setActiveCategory('all')}
-              className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-all ${
-                activeCategory === 'all'
-                  ? 'bg-brand-bright text-white shadow-md'
-                  : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
-              }`}
+              onClick={() => setShowForm(true)}
+              className="rounded-xl bg-white/15 hover:bg-white/25 px-4 py-2 text-sm font-bold text-white transition-colors"
             >
-              All ({expenses.length})
+              + Add
             </button>
-            {CATEGORIES.filter((c) => expenses.some((e) => e.category === c.id)).map((cat) => (
+          )}
+        </div>
+
+        {/* Per-category chips */}
+        {categoryTotals.some((c) => c.total > 0) && (
+          <div className="flex gap-2 px-5 py-3 overflow-x-auto scrollbar-none border-b border-border/30">
+            {categoryTotals.filter((c) => c.total > 0).map((cat) => (
+              <div key={cat.id} className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1 ${cat.bg}`}>
+                <span className="text-sm">{cat.emoji}</span>
+                <span className={`text-xs font-bold ${cat.color}`}>₹{fmt(cat.total)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add expense form */}
+        {showForm && (
+          <div className="p-4 border-b border-border/30">
+            <AddExpenseForm
+              members={members}
+              currentMemberId={currentMemberId}
+              onSave={addExpense}
+              onCancel={() => setShowForm(false)}
+            />
+          </div>
+        )}
+
+        {/* Category filter + expense rows */}
+        {expenses.length > 0 ? (
+          <div className="p-4 space-y-3">
+            {/* Category filter */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
               <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => setActiveCategory('all')}
                 className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-all ${
-                  activeCategory === cat.id
-                    ? `${cat.bg} ${cat.color} shadow-md`
+                  activeCategory === 'all'
+                    ? 'bg-brand-bright text-white shadow-sm'
                     : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
                 }`}
               >
-                {cat.emoji} {cat.label}
+                All ({expenses.length})
               </button>
-            ))}
-          </div>
-
-          {/* ── Expense list ── */}
-          <div className="space-y-2">
-            {filtered.map((exp) => (
-              <ExpenseRow
-                key={exp.id}
-                expense={exp}
-                members={members}
-                currentMemberId={currentMemberId}
-                onDelete={deleteExpense}
-              />
-            ))}
-            {filtered.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-6">No expenses in this category</p>
-            )}
-          </div>
-
-          {/* ── Balances ── */}
-          <div className="rounded-2xl overflow-hidden bg-card shadow-md">
-            <div className="bg-gradient-to-r from-brand-deep to-brand-bright px-5 py-3">
-              <h3 className="text-sm font-bold text-white">💰 Balances</h3>
-              <p className="text-[10px] text-white/70 mt-0.5">
-                {tripIsOver ? 'Final balances — trip is over' : 'Running tally so far'}
-              </p>
+              {CATEGORIES.filter((c) => expenses.some((e) => e.category === c.id)).map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-all ${
+                    activeCategory === cat.id
+                      ? `${cat.bg} ${cat.color} shadow-sm`
+                      : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  {cat.emoji} {cat.label}
+                </button>
+              ))}
             </div>
-            <div className="p-4 space-y-2">
-              {members.map((m, idx) => {
-                const bal = balances.get(m.id) ?? 0;
-                const isPositive = bal > 0.005;
-                const isNegative = bal < -0.005;
-                return (
-                  <div key={m.id} className="flex items-center gap-3">
+
+            {/* Expense rows */}
+            <div className="space-y-2">
+              {filtered.map((exp) => (
+                <ExpenseRow
+                  key={exp.id}
+                  expense={exp}
+                  members={members}
+                  currentMemberId={currentMemberId}
+                  onDelete={deleteExpense}
+                />
+              ))}
+              {filtered.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-4">No expenses in this category</p>
+              )}
+            </div>
+          </div>
+        ) : !showForm ? (
+          <div className="text-center py-10 space-y-1">
+            <div className="text-3xl">💸</div>
+            <p className="text-sm font-semibold text-foreground">No expenses yet</p>
+            <p className="text-xs text-muted-foreground">Tap + Add to log the first one</p>
+          </div>
+        ) : null}
+      </div>
+
+      {/* ════════════════════════════════════════
+          SECTION 2 — Balances
+          ════════════════════════════════════════ */}
+      {expenses.length > 0 && (
+        <div className="rounded-2xl bg-card shadow-md overflow-hidden">
+          <div className="px-5 py-3 bg-gradient-to-r from-brand-deep to-brand-bright">
+            <h3 className="text-sm font-bold text-white">💰 Balances</h3>
+            <p className="text-[10px] text-white/70 mt-0.5">
+              {tripIsOver ? 'Final — trip is over' : 'Running tally based on expenses so far'}
+            </p>
+          </div>
+          <div className="p-4 space-y-2.5">
+            {members.map((m, idx) => {
+              const bal = balances.get(m.id) ?? 0;
+              const isPositive = bal > 0.005;
+              const isNegative = bal < -0.005;
+              return (
+                <div key={m.id} className="rounded-xl bg-muted/20 px-4 py-3 space-y-1.5">
+                  <div className="flex items-center gap-2">
                     <div
                       className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
                       style={{ backgroundColor: memberColor(idx) }}
                     >
                       {m.display_name[0].toUpperCase()}
                     </div>
-                    <span className="text-sm font-medium text-foreground flex-1">
+                    <span className="text-sm font-semibold text-foreground">
                       {m.id === currentMemberId ? 'You' : m.display_name}
                     </span>
+                  </div>
+                  <div className="flex items-center justify-between pl-9">
                     <span className={`text-sm font-bold ${
                       isPositive ? 'text-green-600' : isNegative ? 'text-red-500' : 'text-muted-foreground'
                     }`}>
-                      {isPositive ? '+' : ''}{fmt(bal)}
+                      {isPositive ? '+' : ''}₹{fmt(Math.abs(bal))}
                     </span>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
                       isPositive ? 'bg-green-50 text-green-700' :
@@ -457,60 +499,68 @@ export function BudgetTracker({
                       {isPositive ? 'gets back' : isNegative ? 'owes' : 'settled'}
                     </span>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
+        </div>
+      )}
 
-          {/* ── Settle Up ── */}
-          <div className="rounded-2xl overflow-hidden bg-card shadow-md">
-            <div className={`px-5 py-3 ${tripIsOver
-              ? 'bg-gradient-to-r from-emerald-600 to-teal-600'
-              : 'bg-gradient-to-r from-amber-500 to-orange-500'}`}>
-              <h3 className="text-sm font-bold text-white">
-                {tripIsOver ? '✅ Settle Up' : '🧾 Estimated Settlements'}
-              </h3>
-              <p className="text-[10px] text-white/70 mt-0.5">
-                {tripIsOver
-                  ? 'Minimum transactions to clear all debts'
-                  : 'Based on expenses added so far — will update as more are added'}
-              </p>
-            </div>
-            <div className="p-4 space-y-2">
-              {transactions.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-3">
-                  🎉 Everyone is settled up!
-                </p>
-              ) : (
-                transactions.map((t, i) => (
-                  <div key={i} className="flex items-center gap-3 rounded-xl bg-muted/20 px-4 py-3">
+      {/* ════════════════════════════════════════
+          SECTION 3 — Settlements
+          ════════════════════════════════════════ */}
+      {expenses.length > 0 && (
+        <div className="rounded-2xl bg-card shadow-md overflow-hidden">
+          <div className={`px-5 py-3 ${tripIsOver
+            ? 'bg-gradient-to-r from-emerald-600 to-teal-600'
+            : 'bg-gradient-to-r from-amber-500 to-orange-500'}`}>
+            <h3 className="text-sm font-bold text-white">
+              {tripIsOver ? '✅ Settle Up' : '🧾 Who Owes What'}
+            </h3>
+            <p className="text-[10px] text-white/70 mt-0.5">
+              {tripIsOver
+                ? 'Minimum transactions to clear all debts'
+                : 'Estimated — updates as expenses are added'}
+            </p>
+          </div>
+          <div className="p-4 space-y-2">
+            {transactions.length === 0 ? (
+              <div className="text-center py-6 space-y-1">
+                <div className="text-2xl">🎉</div>
+                <p className="text-sm font-semibold text-foreground">Everyone is settled up!</p>
+                <p className="text-xs text-muted-foreground">No outstanding debts</p>
+              </div>
+            ) : (
+              transactions.map((t, i) => (
+                <div key={i} className="rounded-xl bg-muted/20 px-4 py-3 space-y-2">
+                  <div className="flex items-center gap-2">
                     <div
                       className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
                       style={{ backgroundColor: memberColor(getMemberIdx(t.from)) }}
                     >
                       {getName(t.from)[0].toUpperCase()}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-semibold text-foreground">{getName(t.from)}</span>
-                      <span className="text-sm text-muted-foreground"> pays </span>
-                      <span className="text-sm font-semibold text-foreground">{getName(t.to)}</span>
+                    <span className="text-sm font-semibold text-foreground">{getName(t.from)}</span>
+                    <span className="text-xs text-muted-foreground">→</span>
+                    <div
+                      className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                      style={{ backgroundColor: memberColor(getMemberIdx(t.to)) }}
+                    >
+                      {getName(t.to)[0].toUpperCase()}
                     </div>
-                    <span className="text-sm font-black text-brand-deep shrink-0">₹{fmt(t.amount)}</span>
+                    <span className="text-sm font-semibold text-foreground">{getName(t.to)}</span>
                   </div>
-                ))
-              )}
-            </div>
+                  <div className="flex items-center justify-between pl-9">
+                    <span className="text-xs text-muted-foreground">transfer</span>
+                    <span className="text-sm font-black text-brand-deep">₹{fmt(t.amount)}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-        </>
-      )}
-
-      {expenses.length === 0 && !showForm && (
-        <div className="text-center py-12 space-y-2">
-          <div className="text-4xl">💸</div>
-          <p className="text-sm font-semibold text-foreground">No expenses yet</p>
-          <p className="text-xs text-muted-foreground">Add the first expense to start tracking</p>
         </div>
       )}
+
     </div>
   );
 }

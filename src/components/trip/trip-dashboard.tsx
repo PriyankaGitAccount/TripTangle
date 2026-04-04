@@ -80,6 +80,18 @@ export function TripDashboard({
   const [autoLoading, setAutoLoading] = useState(false);
   const hasAutoTriggered = useRef(false);
 
+  const MAX_REVISIONS = 3;
+  const revisionStorageKey = memberId ? `triptangle_revisions_${trip.id}_${memberId}` : null;
+  const getRevisionCount = () => {
+    if (!revisionStorageKey) return 0;
+    return parseInt(localStorage.getItem(revisionStorageKey) ?? '0', 10);
+  };
+  const incrementRevision = () => {
+    if (!revisionStorageKey) return;
+    localStorage.setItem(revisionStorageKey, String(getRevisionCount() + 1));
+  };
+  const canEditCalendar = !recommendation || getRevisionCount() < MAX_REVISIONS;
+
   const isCreator = trip.creator_member_id === memberId;
   const isLocked = !!tripState.locked_dates_start;
   const submittedMemberIds = new Set(availability.map((a) => a.member_id));
@@ -102,6 +114,26 @@ export function TripDashboard({
       setAutoLoading(false);
     }
   }, [recommendation, isLocked, trip.id]);
+
+  const handlePause = useCallback(async () => {
+    if (isLocked || autoLoading) return;
+    incrementRevision();
+    setAutoLoading(true);
+    hasAutoTriggered.current = false;
+    setRecommendation(null);
+    try {
+      const res = await fetch(`/api/trips/${trip.id}/recommend`, { method: 'POST' });
+      if (!res.ok) throw new Error();
+      const { recommendation: rec } = await res.json();
+      setRecommendation(rec);
+      toast.success('Suggestions updated!');
+    } catch {
+      toast.error('Failed to update suggestions');
+    } finally {
+      setAutoLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLocked, autoLoading, trip.id]);
 
   useEffect(() => {
     if (allSubmitted && !recommendation && !autoLoading) {
@@ -183,6 +215,8 @@ export function TripDashboard({
                 availability={availability}
                 onSave={patchAvailability}
                 onRemove={removeAvailability}
+                onPause={recommendation ? handlePause : undefined}
+                canEdit={canEditCalendar}
               />
             </Panel>
           )}
@@ -240,6 +274,23 @@ export function TripDashboard({
                     isCreator={isCreator}
                     isLocked={isLocked}
                     onLock={handleLock}
+                    refreshing={autoLoading}
+                    onRefresh={async () => {
+                      setAutoLoading(true);
+                      hasAutoTriggered.current = false;
+                      setRecommendation(null);
+                      try {
+                        const res = await fetch(`/api/trips/${trip.id}/recommend`, { method: 'POST' });
+                        if (!res.ok) throw new Error();
+                        const { recommendation: rec } = await res.json();
+                        setRecommendation(rec);
+                        toast.success('Dates recalculated!');
+                      } catch {
+                        toast.error('Failed to recalculate');
+                      } finally {
+                        setAutoLoading(false);
+                      }
+                    }}
                   />
                 ) : (
                   <RecommendationTrigger

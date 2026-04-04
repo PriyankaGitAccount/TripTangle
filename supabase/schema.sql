@@ -76,16 +76,29 @@ ALTER TABLE availability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_recommendations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "anon_all_trips" ON trips;
 CREATE POLICY "anon_all_trips" ON trips FOR ALL TO anon USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_all_members" ON members;
 CREATE POLICY "anon_all_members" ON members FOR ALL TO anon USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_all_availability" ON availability;
 CREATE POLICY "anon_all_availability" ON availability FOR ALL TO anon USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_all_ai_recommendations" ON ai_recommendations;
 CREATE POLICY "anon_all_ai_recommendations" ON ai_recommendations FOR ALL TO anon USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_all_votes" ON votes;
 CREATE POLICY "anon_all_votes" ON votes FOR ALL TO anon USING (true) WITH CHECK (true);
 
 -- Enable Realtime on tables that need live sync
-ALTER PUBLICATION supabase_realtime ADD TABLE members;
-ALTER PUBLICATION supabase_realtime ADD TABLE availability;
-ALTER PUBLICATION supabase_realtime ADD TABLE votes;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'members') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE members;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'availability') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE availability;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'votes') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE votes;
+  END IF;
+END $$;
 
 -- ─────────────────────────────────────────────────────────────────
 -- MIGRATION: Itinerary & During-Trip Coordination
@@ -150,15 +163,27 @@ ALTER TABLE polls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE poll_responses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE itineraries ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "anon_all_map_pins" ON map_pins;
 CREATE POLICY "anon_all_map_pins" ON map_pins FOR ALL TO anon USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_all_polls" ON polls;
 CREATE POLICY "anon_all_polls" ON polls FOR ALL TO anon USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_all_poll_responses" ON poll_responses;
 CREATE POLICY "anon_all_poll_responses" ON poll_responses FOR ALL TO anon USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_all_itineraries" ON itineraries;
 CREATE POLICY "anon_all_itineraries" ON itineraries FOR ALL TO anon USING (true) WITH CHECK (true);
 
 -- Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE map_pins;
-ALTER PUBLICATION supabase_realtime ADD TABLE polls;
-ALTER PUBLICATION supabase_realtime ADD TABLE poll_responses;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'map_pins') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE map_pins;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'polls') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE polls;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'poll_responses') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE poll_responses;
+  END IF;
+END $$;
 
 -- Member suggestions for itinerary regeneration
 CREATE TABLE IF NOT EXISTS itinerary_suggestions (
@@ -171,6 +196,7 @@ CREATE TABLE IF NOT EXISTS itinerary_suggestions (
 
 CREATE INDEX IF NOT EXISTS idx_itinerary_suggestions_trip_id ON itinerary_suggestions(trip_id);
 ALTER TABLE itinerary_suggestions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "anon_all_itinerary_suggestions" ON itinerary_suggestions;
 CREATE POLICY "anon_all_itinerary_suggestions" ON itinerary_suggestions FOR ALL TO anon USING (true) WITH CHECK (true);
 
 -- ─────────────────────────────────────────────────────────────────
@@ -191,8 +217,13 @@ CREATE TABLE IF NOT EXISTS expenses (
 
 CREATE INDEX IF NOT EXISTS idx_expenses_trip_id ON expenses(trip_id);
 ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "anon_all_expenses" ON expenses;
 CREATE POLICY "anon_all_expenses" ON expenses FOR ALL TO anon USING (true) WITH CHECK (true);
-ALTER PUBLICATION supabase_realtime ADD TABLE expenses;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'expenses') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE expenses;
+  END IF;
+END $$;
 
 -- ─────────────────────────────────────────────────────────────────
 -- MIGRATION: Trip Photos
@@ -214,5 +245,10 @@ CREATE TABLE IF NOT EXISTS trip_photos (
 
 CREATE INDEX IF NOT EXISTS idx_trip_photos_trip_id ON trip_photos(trip_id);
 ALTER TABLE trip_photos ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "anon_all_trip_photos" ON trip_photos;
 CREATE POLICY "anon_all_trip_photos" ON trip_photos FOR ALL TO anon USING (true) WITH CHECK (true);
-ALTER PUBLICATION supabase_realtime ADD TABLE trip_photos;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'trip_photos') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE trip_photos;
+  END IF;
+END $$;

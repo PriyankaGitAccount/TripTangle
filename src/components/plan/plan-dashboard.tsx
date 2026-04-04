@@ -135,7 +135,7 @@ export function PlanDashboard({
       </div>
 
       {/* ── Tab content ── */}
-      <div>
+      <div className="flex flex-col w-full">
         {activeTab === 'itinerary' && (
           <ItineraryBuilder
             tripId={trip.id}

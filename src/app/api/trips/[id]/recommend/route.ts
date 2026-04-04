@@ -11,17 +11,11 @@ export async function POST(
   const supabase = createServerClient();
 
   // Fetch trip, members, and availability
-  const [tripResult, membersResult, availabilityResult, existingRecResult] =
+  const [tripResult, membersResult, availabilityResult] =
     await Promise.all([
       supabase.from('trips').select('*').eq('id', id).single(),
       supabase.from('members').select('*').eq('trip_id', id),
       supabase.from('availability').select('*').eq('trip_id', id),
-      supabase
-        .from('ai_recommendations')
-        .select('*')
-        .eq('trip_id', id)
-        .order('created_at', { ascending: false })
-        .limit(1),
     ]);
 
   if (!tripResult.data) {
@@ -43,28 +37,19 @@ export async function POST(
     );
   }
 
-  // Check if cached recommendation is still fresh
-  const existing = existingRecResult.data?.[0];
-  if (existing) {
-    const maxAvailabilityUpdate = Math.max(
-      ...availability.map((a) => new Date(a.updated_at).getTime())
-    );
-    const recTime = new Date(existing.created_at).getTime();
-    if (recTime > maxAvailabilityUpdate) {
-      return NextResponse.json({ recommendation: existing });
-    }
-  }
-
   try {
     const recommendation = await getDateRecommendation(
       trip.name,
+      trip.destination ?? '',
       trip.date_range_start,
       trip.date_range_end,
+      trip.creator_member_id,
       members,
       availability
     );
 
-    // Store recommendation
+    // Replace any existing recommendation for this trip
+    await supabase.from('ai_recommendations').delete().eq('trip_id', id);
     const { data: saved, error } = await supabase
       .from('ai_recommendations')
       .insert({

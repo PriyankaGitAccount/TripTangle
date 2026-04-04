@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { APIProvider, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,27 +10,164 @@ import { toast } from 'sonner';
 import { MAX_DATE_RANGE_DAYS } from '@/lib/constants';
 import { daysBetween } from '@/lib/trip-utils';
 
+/* ─── City autocomplete input ─── */
+
+interface Suggestion {
+  placeId: string;
+  description: string;
+  mainText: string;
+}
+
+function DestinationInput({ value, onChange }: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const places = useMapsLibrary('places');
+  const [query, setQuery] = useState(value);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState(false);
+  const serviceRef = useRef<google.maps.places.AutocompleteService | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (places) serviceRef.current = new places.AutocompleteService();
+  }, [places]);
+
+  // Close on outside click
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, []);
+
+  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = e.target.value;
+    setQuery(v);
+    setSelected(false);
+    onChange(v);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!v.trim() || !serviceRef.current) { setSuggestions([]); setOpen(false); return; }
+
+    debounceRef.current = setTimeout(() => {
+      serviceRef.current!.getPlacePredictions(
+        { input: v, types: ['(cities)'] },
+        (preds, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && preds) {
+            setSuggestions(preds.map((p) => ({
+              placeId: p.place_id,
+              description: p.description,
+              mainText: p.structured_formatting.main_text,
+            })));
+            setOpen(true);
+          } else {
+            setSuggestions([]);
+            setOpen(false);
+          }
+        }
+      );
+    }, 300);
+  }
+
+  function handleSelect(s: Suggestion) {
+    setQuery(s.description);
+    onChange(s.description);
+    setSelected(true);
+    setSuggestions([]);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <Input
+        value={query}
+        onChange={handleInput}
+        onFocus={() => suggestions.length > 0 && setOpen(true)}
+        placeholder="Paris, Bali, New York…"
+        required
+        maxLength={100}
+        className="h-12"
+        autoComplete="off"
+      />
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-50 mt-1 w-full rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+          {suggestions.map((s) => (
+            <li key={s.placeId}>
+              <button
+                type="button"
+                onMouseDown={() => handleSelect(s)}
+                className="w-full px-4 py-2.5 text-left text-sm hover:bg-brand-light transition-colors flex items-center gap-2"
+              >
+                <span className="text-base">📍</span>
+                <div>
+                  <p className="font-semibold text-foreground">{s.mainText}</p>
+                  <p className="text-[11px] text-muted-foreground">{s.description}</p>
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ─── Main form ─── */
+
 export function CreateTripForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [destination, setDestination] = useState('');
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [dateStart, setDateStart] = useState(todayStr);
+  const [dateEnd, setDateEnd] = useState('');
+  const [dateEndError, setDateEndError] = useState('');
+
+  function handleStartChange(val: string) {
+    setDateStart(val);
+    if (dateEnd && dateEnd < val) {
+      setDateEndError('End date cannot be before start date');
+    } else {
+      setDateEndError('');
+    }
+  }
+
+  function handleEndChange(val: string) {
+    setDateEnd(val);
+    if (val && val < dateStart) {
+      setDateEndError('End date cannot be before start date');
+    } else {
+      setDateEndError('');
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const name = (form.get('name') as string).trim();
-    const destination = (form.get('destination') as string).trim();
+    const dest = destination.trim();
     const description = (form.get('description') as string).trim();
-    const dateStart = form.get('dateStart') as string;
-    const dateEnd = form.get('dateEnd') as string;
     const displayName = (form.get('displayName') as string).trim();
 
-    if (!name || !destination || !dateStart || !dateEnd || !displayName) {
+    if (!name || !dest || !dateStart || !dateEnd || !displayName) {
       toast.error('Please fill in all required fields');
       return;
     }
 
+    if (!dateEnd) {
+      toast.error('Please select an end date');
+      return;
+    }
+
     if (dateEnd < dateStart) {
-      toast.error('End date must be after start date');
+      toast.error('End date cannot be before start date');
       return;
     }
 
@@ -46,7 +183,7 @@ export function CreateTripForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
-          destination,
+          destination: dest,
           description,
           date_range_start: dateStart,
           date_range_end: dateEnd,
@@ -78,18 +215,8 @@ export function CreateTripForm() {
     }
   }
 
-  // Default date range: next month
-  const today = new Date();
-  const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-  const defaultStart = nextMonth.toISOString().split('T')[0];
-  const endOfNextMonth = new Date(
-    today.getFullYear(),
-    today.getMonth() + 2,
-    0
-  );
-  const defaultEnd = endOfNextMonth.toISOString().split('T')[0];
-
   return (
+    <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="name">Trip Name *</Label>
@@ -105,14 +232,7 @@ export function CreateTripForm() {
 
       <div className="space-y-2">
         <Label htmlFor="destination">Destination *</Label>
-        <Input
-          id="destination"
-          name="destination"
-          placeholder="Paris, Bali, New York…"
-          required
-          maxLength={100}
-          className="h-12"
-        />
+        <DestinationInput value={destination} onChange={setDestination} />
       </div>
 
       <div className="space-y-2">
@@ -134,8 +254,9 @@ export function CreateTripForm() {
             name="dateStart"
             type="date"
             required
-            defaultValue={defaultStart}
-            min={today.toISOString().split('T')[0]}
+            value={dateStart}
+            min={todayStr}
+            onChange={(e) => handleStartChange(e.target.value)}
             className="h-12"
           />
         </div>
@@ -146,10 +267,14 @@ export function CreateTripForm() {
             name="dateEnd"
             type="date"
             required
-            defaultValue={defaultEnd}
-            min={today.toISOString().split('T')[0]}
-            className="h-12"
+            value={dateEnd}
+            min={dateStart}
+            onChange={(e) => handleEndChange(e.target.value)}
+            className={`h-12 ${dateEndError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
           />
+          {dateEndError && (
+            <p className="text-xs text-red-500">{dateEndError}</p>
+          )}
         </div>
       </div>
 
@@ -177,5 +302,6 @@ export function CreateTripForm() {
         {loading ? 'Creating...' : 'Create Trip'}
       </button>
     </form>
+    </APIProvider>
   );
 }

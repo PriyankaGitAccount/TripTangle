@@ -125,7 +125,7 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
   const { best, runner_up, alternatives = [], nudge } = recommendation;
   const allOptions: { option: DateOption; rank: number }[] = [
     { option: best, rank: 1 },
-    { option: runner_up, rank: 2 },
+    ...(runner_up ? [{ option: runner_up, rank: 2 }] : []),
     ...alternatives.map((opt, i) => ({ option: opt, rank: i + 3 })),
   ];
 

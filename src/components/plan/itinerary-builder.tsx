@@ -28,6 +28,29 @@ const LOADING_MESSAGES = [
   'Curating day-by-day experiences…',
 ];
 
+// ── Brand icons ──────────────────────────────────────────────────
+function YouTubeIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 00-1.95 1.96A29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.95A29 29 0 0023 12a29 29 0 00-.46-5.58z" fill="#FF0000"/>
+      <path d="M9.75 15.02l5.75-3.02-5.75-3.02v6.04z" fill="#fff"/>
+    </svg>
+  );
+}
+
+function TripAdvisorIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" fill="#34E0A1"/>
+      <circle cx="8.5" cy="11" r="2.5" fill="white"/>
+      <circle cx="15.5" cy="11" r="2.5" fill="white"/>
+      <circle cx="8.5" cy="11" r="1" fill="#00AA6C"/>
+      <circle cx="15.5" cy="11" r="1" fill="#00AA6C"/>
+      <path d="M9.5 15c.5 1 4.5 1 5 0" stroke="#00AA6C" strokeWidth="1.2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 // ── URL helpers ──────────────────────────────────────────────────
 function youtubeUrl(q: string) { return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`; }
 function tripadvisorUrl(q: string) { return `https://www.tripadvisor.com/Search?q=${encodeURIComponent(q)}`; }
@@ -135,11 +158,11 @@ function ActivityRow({
           </a>
           <a href={youtubeUrl(`${act.place_name} ${destination}`)} target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-medium text-red-700 hover:bg-red-100 transition-colors">
-            ▶ YouTube
+            <YouTubeIcon className="h-3 w-3" /> YouTube
           </a>
           <a href={tripadvisorUrl(`${act.place_name} ${destination}`)} target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-[10px] font-medium text-green-700 hover:bg-green-100 transition-colors">
-            ⭐ TripAdvisor
+            <TripAdvisorIcon className="h-3 w-3" /> TripAdvisor
           </a>
           {apiKey && (
             <button onClick={() => setShowEmbed((v) => !v)}
@@ -401,8 +424,6 @@ export function ItineraryBuilder({
               {[
                 { label: '🏨 Booking.com', href: bookingUrl(destination), cls: 'bg-blue-50 text-blue-700 hover:bg-blue-100 shadow-sm' },
                 { label: '🔍 Trivago',     href: trivagoUrl(destination), cls: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 shadow-sm' },
-                { label: '⭐ TripAdvisor', href: tripadvisorUrl(destination), cls: 'bg-green-50 text-green-700 hover:bg-green-100 shadow-sm' },
-                { label: '▶ Vlogs',        href: youtubeUrl(`${destination} travel vlog`), cls: 'bg-red-50 text-red-700 hover:bg-red-100 shadow-sm' },
                 { label: '📰 Blogs',       href: googleBlogUrl(destination), cls: 'bg-orange-50 text-orange-700 hover:bg-orange-100 shadow-sm' },
               ].map((link) => (
                 <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
@@ -410,6 +431,14 @@ export function ItineraryBuilder({
                   {link.label}
                 </a>
               ))}
+              <a href={tripadvisorUrl(destination)} target="_blank" rel="noopener noreferrer"
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-[11px] font-semibold text-green-700 hover:bg-green-100 transition-colors whitespace-nowrap shadow-sm">
+                <TripAdvisorIcon className="h-3.5 w-3.5" /> TripAdvisor
+              </a>
+              <a href={youtubeUrl(`${destination} travel vlog`)} target="_blank" rel="noopener noreferrer"
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-[11px] font-semibold text-red-700 hover:bg-red-100 transition-colors whitespace-nowrap shadow-sm">
+                <YouTubeIcon className="h-3.5 w-3.5" /> Vlogs
+              </a>
             </div>
 
             {/* Day timeline */}
@@ -481,9 +510,13 @@ export function ItineraryBuilder({
                     <p className="text-[11px] text-foreground leading-snug line-clamp-2 flex-1">{q}</p>
                     <div className="flex gap-1 shrink-0">
                       <a href={youtubeUrl(q)} target="_blank" rel="noopener noreferrer"
-                        className="rounded-full bg-red-50 px-1.5 py-0.5 text-[9px] font-bold text-red-700 hover:bg-red-100 transition-colors">▶</a>
+                        className="rounded-full bg-red-50 p-1 hover:bg-red-100 transition-colors flex items-center justify-center">
+                        <YouTubeIcon className="h-3.5 w-3.5" />
+                      </a>
                       <a href={tripadvisorUrl(q)} target="_blank" rel="noopener noreferrer"
-                        className="rounded-full bg-green-50 px-1.5 py-0.5 text-[9px] font-bold text-green-700 hover:bg-green-100 transition-colors">⭐</a>
+                        className="rounded-full bg-green-50 p-1 hover:bg-green-100 transition-colors flex items-center justify-center">
+                        <TripAdvisorIcon className="h-3.5 w-3.5" />
+                      </a>
                       <a href={googleBlogUrl(q)} target="_blank" rel="noopener noreferrer"
                         className="rounded-full bg-orange-50 px-1.5 py-0.5 text-[9px] font-bold text-orange-700 hover:bg-orange-100 transition-colors">📰</a>
                     </div>

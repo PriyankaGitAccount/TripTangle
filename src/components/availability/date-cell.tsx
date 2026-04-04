@@ -5,7 +5,7 @@ import type { AvailabilityStatus } from '@/types';
 interface DateCellProps {
   date: string;
   status: AvailabilityStatus | null;
-  onTap: () => void;
+  onTap?: () => void;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -22,7 +22,8 @@ export function DateCell({ date, status, onTap }: DateCellProps) {
     <button
       type="button"
       onClick={onTap}
-      className={`flex h-11 w-full items-center justify-center rounded-xl text-sm font-medium transition-all active:scale-95 ${style}`}
+      disabled={!onTap}
+      className={`flex h-11 w-full items-center justify-center rounded-xl text-sm font-medium transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${style}`}
       aria-label={`${date}: ${status || 'not set'}`}
     >
       {day}

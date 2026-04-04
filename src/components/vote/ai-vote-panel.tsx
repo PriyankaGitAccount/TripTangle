@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { formatDateRange, daysBetween } from '@/lib/trip-utils';
-import type { DateOption, RecommendationData, Vote, Member } from '@/types';
+import type { DateOption, RecommendationData, Vote, Member, FallbackMonths } from '@/types';
 
 interface AiVotePanelProps {
   tripId: string;
@@ -14,6 +14,8 @@ interface AiVotePanelProps {
   isCreator: boolean;
   isLocked: boolean;
   onLock: (start: string, end: string) => void;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
 function ConfidenceBar({ value }: { value: number }) {
@@ -44,6 +46,14 @@ function MemberPips({ available, maybe, total }: { available: number; maybe: num
   );
 }
 
+const OPTION_TYPE_LABELS: Record<string, string> = {
+  exact: 'PERFECT MATCH',
+  partial: 'BEST AVAILABLE',
+  maybe_organiser: "ORGANISER'S MAYBE",
+  maybe_member: "MEMBER'S MAYBE",
+  maybe_group: 'GROUP COMPROMISE',
+};
+
 interface OptionRowProps {
   option: DateOption;
   rank: number;
@@ -68,7 +78,9 @@ function OptionRow({
   const majority = Math.floor(memberCount / 2) + 1;
   const nearMajority = voteCount === majority - 1 && memberCount > 1;
 
-  const rankLabel = rank === 1 ? 'BEST MATCH' : rank === 2 ? 'RUNNER UP' : `OPTION ${rank}`;
+  const rankLabel = option.option_type
+    ? OPTION_TYPE_LABELS[option.option_type] ?? `OPTION ${rank}`
+    : rank === 1 ? 'BEST MATCH' : rank === 2 ? 'RUNNER UP' : `OPTION ${rank}`;
   const rankColor =
     rank === 1
       ? { bg: 'rgba(234,88,12,0.06)', border: 'rgba(234,88,12,0.2)', badge: '#9A3412' }
@@ -133,6 +145,12 @@ function OptionRow({
           </span>
         </div>
 
+        {option.justification && (
+          <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+            {option.justification}
+          </p>
+        )}
+
         {option.confidence !== undefined && <ConfidenceBar value={option.confidence} />}
 
         {option.trade_off && (
@@ -165,13 +183,20 @@ function OptionRow({
 }
 
 export function AiVotePanel({
-  tripId, memberId, recommendation, votes, members, isCreator, isLocked, onLock,
+  tripId, memberId, recommendation, votes, members, isCreator, isLocked, onLock, onRefresh, refreshing,
 }: AiVotePanelProps) {
   const [voting, setVoting] = useState(false);
   const [locking, setLocking] = useState(false);
 
-  const { best, runner_up, alternatives = [], nudge } = recommendation;
-  const allOptions: DateOption[] = [best, runner_up, ...alternatives];
+  const { best, runner_up, alternatives = [], nudge, fallback } = recommendation;
+  // Deduplicate: remove options with identical start+end to a previous option
+  const rawOptions: (DateOption | undefined)[] = [best, runner_up, ...alternatives];
+  const allOptions: DateOption[] = rawOptions.filter(
+    (opt, idx, arr): opt is DateOption =>
+      !!opt && arr.findIndex((o) => o?.start === opt.start && o?.end === opt.end) === idx
+  );
+  // If the only "option" is a fallback placeholder (available_count 0), show fallback UI instead
+  const isFallbackMode = !!fallback && allOptions.length === 1 && allOptions[0].available_count === 0;
 
   const myVote = votes.find((v) => v.member_id === memberId);
   const myVoteIndex = myVote?.option_index ?? null;
@@ -236,6 +261,40 @@ export function AiVotePanel({
     }
   }
 
+  // ── Fallback: no availability overlap found ────────────────────────────────
+  if (isFallbackMode && fallback) {
+    return (
+      <div className="space-y-3">
+        <div className="rounded-xl bg-orange-50 px-3 py-3 flex items-start gap-2">
+          <span className="text-base">😕</span>
+          <p className="text-xs text-orange-800 font-medium leading-relaxed">{fallback.message}</p>
+        </div>
+        {fallback.months.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+              Great times to visit
+            </p>
+            {fallback.months.map((m, i) => (
+              <div key={i} className="rounded-xl bg-card shadow-sm px-3 py-2.5 space-y-0.5">
+                <p className="text-sm font-bold text-foreground">{m.name}</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">{m.reason}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="w-full rounded-xl py-2.5 text-xs font-semibold text-brand-bright bg-brand-bright/5 hover:bg-brand-bright/10 transition-colors disabled:opacity-40"
+          >
+            {refreshing ? '⏳ Recalculating…' : '↻ Try again'}
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
 
@@ -274,11 +333,24 @@ export function AiVotePanel({
         }
       })()}
 
+      {/* ── Recalculate button ── */}
+      {!isLocked && onRefresh && (
+        <div className="flex justify-end">
+          <button
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="text-[11px] font-semibold text-muted-foreground hover:text-brand-bright transition-colors disabled:opacity-40"
+          >
+            {refreshing ? '⏳ Recalculating…' : '↻ Recalculate dates'}
+          </button>
+        </div>
+      )}
+
       {/* ── Option rows ── */}
       <div className="space-y-2">
         {allOptions.map((option, i) => (
           <OptionRow
-            key={`${option.start}-${option.end}`}
+            key={`option-${i}-${option.start}-${option.end}`}
             option={option}
             rank={i + 1}
             optionIndex={i}

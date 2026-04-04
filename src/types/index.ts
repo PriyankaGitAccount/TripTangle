@@ -38,11 +38,17 @@ export interface AIRecommendation {
   created_at: string;
 }
 
+export interface FallbackMonths {
+  message: string;
+  months: { name: string; reason: string }[];
+}
+
 export interface RecommendationData {
   best: DateOption;
-  runner_up: DateOption;
+  runner_up?: DateOption;
   alternatives?: DateOption[];
   nudge: string;
+  fallback?: FallbackMonths;
 }
 
 export interface DateOption {
@@ -52,8 +58,10 @@ export interface DateOption {
   maybe_count: number;
   total_members: number;
   summary: string;
+  justification?: string;
   trade_off?: string;
   confidence?: number;
+  option_type?: 'exact' | 'partial' | 'maybe_organiser' | 'maybe_member' | 'maybe_group';
 }
 
 export interface Vote {
