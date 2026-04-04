@@ -37,7 +37,7 @@ export function ShareDialog({ tripId, tripName }: ShareDialogProps) {
       return;
     }
     const cleaned = phoneNumber.replace(/[^0-9+]/g, '');
-    const text = `Hey! I'm planning a trip "${tripName}" 🌴 Join our TripTangle to pick dates together: ${shareUrl}`;
+    const text = `Hey! I'm planning a trip - "${tripName}"\nJoin me on TripTangle to pick dates together:\n${shareUrl}`;
     window.open(
       `https://wa.me/${cleaned}?text=${encodeURIComponent(text)}`,
       '_blank'
