@@ -141,10 +141,11 @@ export function TripDashboard({
     }
   }, [allSubmitted, recommendation, autoLoading, autoTrigger]);
 
-  if (isLoaded && !isIdentified) {
-    router.push(`/trip/${trip.id}/join`);
-    return null;
-  }
+  useEffect(() => {
+    if (isLoaded && !isIdentified) {
+      router.push(`/trip/${trip.id}/join`);
+    }
+  }, [isLoaded, isIdentified, trip.id, router]);
 
   useEffect(() => {
     if (isLoaded && isLocked) {
@@ -152,7 +153,7 @@ export function TripDashboard({
     }
   }, [isLoaded, isLocked, trip.id, router]);
 
-  if (!isLoaded) {
+  if (!isLoaded || !isIdentified) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-3 border-brand-amber/20 border-t-brand-bright" />
