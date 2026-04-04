@@ -53,6 +53,6 @@ export function getShareUrl(tripId: string): string {
 
 export function getWhatsAppUrl(tripId: string, tripName: string): string {
   const url = getShareUrl(tripId);
-  const text = `Hey! I'm planning a trip - "${tripName}"\nJoin me on TripTangle to pick dates together:\n${url}`;
+  const text = `${url}\n\nYou're invited to plan "${tripName}" on TripTangle!\nTap the link above to mark your available dates.`;
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
