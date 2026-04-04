@@ -27,7 +27,19 @@ export function ShareDialog({ tripId, tripName }: ShareDialogProps) {
     toast.success('Link copied to clipboard!');
   }
 
-  function handleWhatsAppGeneric() {
+  async function handleWhatsAppGeneric() {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `Join "${tripName}" on TripTangle`,
+          text: `Hey! I'm planning a trip "${tripName}" 🌴 Join our TripTangle to pick dates together:`,
+          url: shareUrl,
+        });
+        return;
+      } catch {
+        // User cancelled or browser blocked — fall through to wa.me
+      }
+    }
     window.open(getWhatsAppUrl(tripId, tripName), '_blank');
   }
 
@@ -37,7 +49,7 @@ export function ShareDialog({ tripId, tripName }: ShareDialogProps) {
       return;
     }
     const cleaned = phoneNumber.replace(/[^0-9+]/g, '');
-    const text = `${shareUrl}\n\nYou're invited to plan "${tripName}" on TripTangle!\nTap the link above to mark your available dates.`;
+    const text = `Hey! I'm planning a trip "${tripName}" 🌴 Join our TripTangle to pick dates together: ${shareUrl}`;
     window.open(
       `https://wa.me/${cleaned}?text=${encodeURIComponent(text)}`,
       '_blank'
