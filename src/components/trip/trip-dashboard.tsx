@@ -7,6 +7,7 @@ import { useRealtimeMembers } from '@/hooks/use-realtime-members';
 import { useRealtimeAvailability } from '@/hooks/use-realtime-availability';
 import { useRealtimeVotes } from '@/hooks/use-realtime-votes';
 import { TripHeader } from './trip-header';
+import { TripTangleLogo } from '@/components/ui/logo';
 import { MemberList } from './member-list';
 import { CalendarGrid } from '@/components/availability/calendar-grid';
 import { Heatmap } from '@/components/availability/heatmap';
@@ -106,7 +107,7 @@ function JoinView({
         {/* Right — join form */}
         <div className="md:sticky md:top-4 rounded-2xl bg-card shadow-md overflow-hidden">
           <div className="bg-gradient-to-r from-brand-deep to-brand-bright px-5 py-4">
-            <div className="text-3xl mb-1">🌴</div>
+            <div className="mb-1"><TripTangleLogo size={32} /></div>
             <h2 className="text-lg font-bold text-white">Join & mark your dates</h2>
             <p className="text-xs text-white/70 mt-0.5">
               Enter your name, then tap the calendar to show when you're free

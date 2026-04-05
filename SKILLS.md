@@ -96,15 +96,19 @@
 
 ---
 
-## 5. Identity & Auth (No-Auth Pattern)
+## 5. Authentication & Identity
 
 | Skill | Detail |
 |---|---|
-| **localStorage identity** | `useMemberIdentity` hook stores `{ tripId, memberId }` in `localStorage` key `triptangle_member_{tripId}` |
-| **Identity-from-URL** | Member joins via `/trip/[id]/join`, picks a display name, gets a `member_id` UUID back from the API — stored locally |
-| **Creator detection** | `isCreator = trip.creator_member_id === memberId` checked client-side; enforced server-side on lock endpoint |
-| **Redirect guard** | Dashboard redirects to `/join` if no identity found in localStorage for that trip |
-| **Security model** | Unguessable 12-char alphanumeric trip IDs (`nanoid`) as the primary security boundary |
+| **Google OAuth (Supabase)** | `signInWithOAuth({ provider: 'google' })` — no passwords, no SMTP. Supabase manages the OAuth flow |
+| **OAuth callback handler** | `/auth/callback` route exchanges PKCE code for session, creates `user_profiles` row from Google metadata (`full_name`, `name`, email fallback) |
+| **Cookie-based sessions** | `@supabase/ssr` + `createSSRClient` manages cookies server-side; `createBrowserClient` on client |
+| **Middleware route protection** | `src/middleware.ts` guards `/dashboard`, `/create`, `/trip/*`; unauthenticated → `/login?redirect=<path>`; authenticated on `/login` → `/dashboard` |
+| **Server-side identity resolution** | Server components call `auth.getUser()` → query `members WHERE user_id = auth.uid` — no localStorage or client-side identity |
+| **Auto-join flow** | Invited member clicks link → redirected to `/login?redirect=/trip/[id]` → Google OAuth → `/trip/[id]` server component auto-inserts member row using `display_name` from `user_profiles` |
+| **Role-based access** | `members.role` = `'organizer'|'member'`; creator-only actions (lock dates) enforced server-side |
+| **`user_profiles` table** | One row per auth user; `display_name` seeded from Google name; used as display_name when auto-joining trips |
+| **Invite tracking** | `invitations` table records per-channel sends (WhatsApp/Gmail/SMS); AI triggers at ≥60% of expected members |
 
 ---
 
@@ -116,7 +120,7 @@
 | **Full calendar months** | Group heatmap renders complete calendar months (not just date-range slice), with out-of-range days faded |
 | **Availability cycling** | Tap a date to cycle `available → maybe → unavailable → clear`; colour-coded green / amber / red |
 | **Per-member heatmap pips** | Each heatmap cell shows coloured dots per member (green=available, amber=maybe, red=unavailable, grey=no response) + colour key legend |
-| **Demo member seeding** | Auto-creates `Sam` + `Zoe` with contrasting patterns — Sam available early/unavailable late, Zoe busy early/free mid — creates realistic heatmap gradient immediately |
+| **Creator availability seeding** | When creator makes a trip, all dates in the trip range are auto-marked `available` in their calendar — realistic heatmap gradient from day one |
 | **Destination photo** | Lock banner fetches destination photo from Unsplash source URL; graceful gradient fallback |
 | **Vote-to-lock flow** | Inline vote buttons per option → realtime vote counts → "Lock Winning Dates" (creator only) → post-lock redirect to Plan |
 | **Post-lock redirect** | `router.push()` in `useEffect` — never in render body (avoids "Cannot update while rendering" error) |
@@ -148,7 +152,7 @@ Frontend    Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS v4 · shadcn/
 Backend     Next.js Route Handlers · Supabase (PostgreSQL + Realtime + Storage)
 Maps        @vis.gl/react-google-maps · Google Maps JS API · Places API · Geocoding API
 AI          Anthropic Claude (claude-haiku-4-5-20251001) via @anthropic-ai/sdk
-Auth        No-auth · localStorage identity · unguessable trip IDs (nanoid)
+Auth        Supabase Google OAuth · cookie sessions (@supabase/ssr) · server-side identity
 Deploy      Vercel · Supabase Cloud
 ```
 

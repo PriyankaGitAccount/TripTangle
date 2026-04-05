@@ -53,9 +53,9 @@ export function PlanDashboard({
 
       {/* ── Page header ── */}
       <div className="mb-6 space-y-2">
-        <a href={`/trip/${trip.id}`}
+        <a href="/dashboard"
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-          ← Back to trip
+          ← My Trips
         </a>
         <h1 className="text-xl font-bold tracking-tight text-brand-deep">{trip.name} 🚀</h1>
 

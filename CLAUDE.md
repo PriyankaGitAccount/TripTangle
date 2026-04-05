@@ -14,15 +14,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What is TripTangle
 
-AI-powered group travel date coordination app. Users create a trip, share a link, group members mark their availability on a calendar, Claude AI finds the best dates (prioritising exact full-group overlap), and the group votes to lock dates. No authentication — identity via display name + localStorage.
+AI-powered group travel date coordination app. Users sign in with Google, create a trip, share a link, group members mark their availability on a calendar, Claude AI finds the best dates (prioritising exact full-group overlap), and the group votes to lock dates. Auth via Supabase Google OAuth — identity is the authenticated user's `user_id`.
 
 **Target surface**: Web-based mobile application (responsive; desktop shows a two-column layout).
 
 **Core loop**:
-1. Creator makes a trip → shares the link with their group
-2. Members join via shareable link and tap dates (available / maybe / busy)
-3. Live heatmap shows group overlap in real-time
-4. Once all members submit, AI auto-triggers and returns ranked date suggestions
+1. Creator signs in with Google → creates a trip → shares the link
+2. Members click invite link → sign in with Google → auto-join the trip
+3. Members tap dates (available / maybe / busy); live heatmap shows group overlap in real-time
+4. AI triggers when ≥60% of expected members (based on invite count) have submitted
 5. Members vote; highest votes wins; creator locks dates
 6. Post-lock: destination photo + planning feature cards appear
 7. Plan phase (`/trip/[id]/plan`): AI-generated itinerary, shared map with pins, group polls
@@ -68,8 +68,10 @@ Schema: `supabase/schema.sql` — run in Supabase SQL Editor to initialise.
 
 | Table | Key columns | Notes |
 |---|---|---|
+| `user_profiles` | `id UUID` (= auth.uid), `email`, `display_name` | Created on first Google OAuth login via `/auth/callback` |
 | `trips` | `id TEXT`, `creator_member_id UUID`, `locked_dates_start/end DATE` | `id` is 12-char alphanumeric (nanoid) |
-| `members` | `id UUID`, `trip_id`, `display_name`, `status` | Unique `(trip_id, display_name)` |
+| `members` | `id UUID`, `trip_id`, `user_id UUID`, `display_name`, `role`, `status` | `user_id` = auth.uid; `role` = `'organizer'|'member'`; unique `(trip_id, display_name)` |
+| `invitations` | `trip_id`, `channel TEXT` | Tracks WhatsApp/Gmail/SMS invite sends; used for 60% threshold |
 | `availability` | `member_id`, `trip_id`, `date`, `status` | Unique `(member_id, trip_id, date)`; upsert pattern |
 | `ai_recommendations` | `trip_id`, `recommendation_json JSONB` | One row per trip; always replaced on re-trigger (no staleness caching) |
 | `votes` | `member_id`, `trip_id`, `option_index` | Unique `(member_id, trip_id)`; upsert — one vote per member |
@@ -82,7 +84,7 @@ Schema: `supabase/schema.sql` — run in Supabase SQL Editor to initialise.
 | `trip_photos` | `trip_id`, `member_id`, `file_name`, `file_path`, `file_size`, `content_type` | Storage path: `{tripId}/{memberId}/{timestamp}-{filename}` |
 
 ### RLS
-Enabled on all tables with permissive anon policies. Security relies entirely on trip IDs being unguessable. Do not add per-user auth without reviewing all policies.
+Enabled on all tables. Policies are `TO authenticated` (not `TO anon`) — all endpoints require a valid Supabase session. `user_profiles` has an additional policy so users can only read/write their own row.
 
 ### Realtime
 `members`, `availability`, `votes`, `map_pins`, `polls`, `poll_responses`, `expenses`, `trip_photos` have Supabase Realtime enabled via `ALTER PUBLICATION supabase_realtime ADD TABLE`.
@@ -103,9 +105,11 @@ Enabled on all tables with permissive anon policies. Security relies entirely on
 | Route | Type | Purpose |
 |---|---|---|
 | `/` | Static | Landing page |
-| `/create` | Static | Trip creation form |
-| `/trip/[id]` | Dynamic (SSR) | Trip dashboard — fetches all data server-side |
-| `/trip/[id]/join` | Dynamic | Name entry for new members |
+| `/login` | Client | Google OAuth sign-in (single button → Supabase OAuth) |
+| `/auth/callback` | Route Handler | Exchanges OAuth code for session; creates `user_profiles` row; redirects to `?next=` |
+| `/dashboard` | SSR | All trips the user belongs to — trip cards with status (active / locked) |
+| `/create` | SSR | Trip creation form (auth-gated) |
+| `/trip/[id]` | Dynamic (SSR) | Trip dashboard — auto-joins non-member; blocks locked trips |
 | `/trip/[id]/plan` | Dynamic (SSR) | Plan phase — itinerary, map, polls (tab driven by `?tab=` param) |
 
 ### Key patterns
@@ -116,8 +120,8 @@ Enabled on all tables with permissive anon policies. Security relies entirely on
 **Realtime hooks (seed + patch)**
 `useRealtimeMembers`, `useRealtimeAvailability`, `useRealtimeVotes` each accept server-fetched data as `initial*` and subscribe to `postgres_changes`. They patch local state on INSERT/UPDATE/DELETE without refetching.
 
-**Identity without auth**
-`useMemberIdentity(tripId)` reads/writes `triptangle_member_{tripId}` in localStorage. `member_id` travels in API request bodies — never in cookies or headers. On load, if no identity exists for the current trip, dashboard redirects to `/join`.
+**Auth — Google OAuth via Supabase**
+`src/middleware.ts` protects `/dashboard`, `/create`, `/trip/*`. Unauthenticated users are redirected to `/login?redirect=<path>`. After Google OAuth, `/auth/callback` exchanges the code, creates a `user_profiles` row (display_name from Google), and redirects to `next`. `member_id` is resolved server-side: `auth.getUser()` → `members WHERE user_id = auth.uid AND trip_id = id`. The `memberId` and `currentUserRole` are passed as props from the server component — never derived client-side from localStorage. `isCreator = currentUserRole === 'organizer'` (enforced server-side on lock endpoint too). `useMemberIdentity` hook has been removed.
 
 **Optimistic availability with debounce**
 `CalendarGrid` applies local state immediately on tap (cycles `available → maybe → unavailable → clear`), then debounces 300ms before the API call. Reverts on error. Uses a `Map<string, NodeJS.Timeout>` ref keyed by date to track per-cell timers.
@@ -146,9 +150,11 @@ Each option shows a `justification` (1-liner italic) from Claude below the date 
 **Deduplication**: `AiVotePanel` filters `allOptions` by unique `start+end` before rendering.
 **No caching**: `/api/trips/[id]/recommend` always deletes the old row and regenerates fresh.
 
-**Auto-trigger**: `TripDashboard` watches `submittedCount === members.length`. `hasAutoTriggered.current` ref prevents double-calling.
+**Auto-trigger (60% threshold)**: `TripDashboard` computes `expectedTotal = Math.max(members.length, inviteCount + 1)` and `threshold = Math.max(2, Math.ceil(expectedTotal * 0.6))`. When `submittedCount >= threshold`, AI triggers automatically. `hasAutoTriggered.current` ref prevents double-calling.
 
-**Pause-triggered re-suggestions**: `CalendarGrid` accepts `onPause` and `canEdit` props. A 3-second inactivity timer (restarts on every tap) fires `onPause()` when the member stops editing. `TripDashboard.handlePause()` increments a revision counter in localStorage (`triptangle_revisions_{tripId}_{memberId}`) and re-calls the recommend endpoint. After 3 revisions, `canEdit` becomes `false` — calendar cells are disabled and show a "Max revisions reached" notice.
+**Invite tracking**: `invitations` table stores per-channel sends (WhatsApp/Gmail/SMS). `POST /api/trips/[id]/invite` inserts a row; `TripHeader` reads `initialInviteCount` (from server) and shows "X joined · Y pending" pills. The invite count feeds the 60% threshold calculation.
+
+**Pause-triggered re-suggestions**: `CalendarGrid` accepts `onPause` and `canEdit` props. A 3-second inactivity timer (restarts on every tap) fires `onPause()` when the member stops editing. `TripDashboard.handlePause()` increments a revision counter in a `useRef` (not localStorage, since auth replaced localStorage identity) and re-calls the recommend endpoint. After 3 revisions, `canEdit` becomes `false` — calendar cells are disabled and show a "Max revisions reached" notice.
 
 **Vote-to-lock flow**
 `AiVotePanel` shows all ranked options (best + runner-up + alternatives). Each option has an inline Vote / ✓ Voted button. Vote counts update via realtime. The "Lock Winning Dates" button (creator only) locks the option with the highest vote count. Winner is determined by `Math.max(...voteCounts)`.
@@ -184,21 +190,26 @@ The heatmap and AI/vote panels are hidden. Invite Friends button is removed from
 src/
 ├── app/
 │   ├── page.tsx                        Landing page (fun travel theme, floating destination cards)
-│   ├── create/page.tsx                 Trip creation form
+│   ├── login/page.tsx                  Google OAuth sign-in page
+│   ├── auth/callback/route.ts          OAuth code exchange → session + user_profiles upsert
+│   ├── dashboard/page.tsx              SSR — all trips the user belongs to, as cards
+│   ├── create/page.tsx                 Trip creation form (auth-gated)
 │   ├── trip/[id]/
-│   │   ├── page.tsx                    Server shell — parallel data fetch
-│   │   ├── join/page.tsx               Display name entry
-│   │   └── plan/page.tsx               Plan phase — 7 parallel queries, tab routing
-│   └── api/trips/
-│       ├── route.ts                    POST /api/trips (create trip + first member)
-│       └── [id]/
-│           ├── route.ts                GET /api/trips/[id]
-│           ├── join/route.ts           POST — join trip
-│           ├── availability/route.ts   POST — upsert/delete availability
-│           ├── recommend/route.ts      POST — trigger Claude, cache result
-│           ├── vote/route.ts           POST — upsert vote
-│           ├── lock/route.ts           POST — creator-only date lock
-│           ├── itinerary/
+│   │   ├── page.tsx                    Server shell — auth check, auto-join, parallel data fetch
+│   │   ├── join/page.tsx               (Legacy — kept; auto-join now server-side)
+│   │   └── plan/page.tsx               Plan phase — auth+member check, 9 parallel queries
+│   └── api/
+│       ├── auth/logout/route.ts        POST — signOut + redirect to /login
+│       └── trips/
+│           ├── route.ts                POST /api/trips (create trip + first member, seeds availability)
+│           └── [id]/
+│               ├── route.ts            GET /api/trips/[id]
+│               ├── invite/route.ts     POST — record invite channel; GET — invite count
+│               ├── availability/route.ts POST — upsert/delete availability
+│               ├── recommend/route.ts  POST — trigger Claude, cache result
+│               ├── vote/route.ts       POST — upsert vote
+│               ├── lock/route.ts       POST — creator-only date lock
+│               ├── itinerary/
 │           │   ├── route.ts            GET/POST — fetch or (re)generate AI itinerary
 │           │   └── suggestions/route.ts POST — add member itinerary suggestion
 │           ├── pins/route.ts           POST/DELETE — map pins (owner-only delete)
@@ -234,7 +245,6 @@ src/
 │       └── photo-gallery.tsx           Per-member sub-tabs, upload/download, lightbox
 │
 ├── hooks/
-│   ├── use-member-identity.ts          localStorage identity read/write
 │   ├── use-realtime-members.ts         Live member list
 │   ├── use-realtime-availability.ts    Live availability updates
 │   ├── use-realtime-votes.ts           Live vote updates
@@ -260,21 +270,25 @@ src/
 ## Data Flow
 
 ```
-Landing (/) → Create (/create) → Trip Dashboard (/trip/[id])
-                                       ↕
-                                 Join (/trip/[id]/join)
-                                       ↓ (after lock)
-                               Plan (/trip/[id]/plan)
+Landing (/) → Login (/login) → Google OAuth → /auth/callback → Dashboard (/dashboard)
+                                                                       ↓
+                                                              Create (/create) → Trip Dashboard (/trip/[id])
+                                                                       ↑
+                                            Share link → Login → auto-join → Trip Dashboard (/trip/[id])
+                                                                                    ↓ (after lock)
+                                                                             Plan (/trip/[id]/plan)
+                                                                                    ↓
+                                                                             Dashboard (/dashboard) ← "My Trips"
 
 Trip Dashboard state machine:
 
-  [All members submit]
+  [≥60% of expected members submit]
         ↓ auto-trigger
   [AI recommendation]
         ↓ members vote
   [Highest votes → Lock]
         ↓
-  [Post-lock view] → Plan link
+  [Post-lock view] → Plan link → /trip/[id]/plan
 ```
 
 **Dashboard section order (active trip)**:

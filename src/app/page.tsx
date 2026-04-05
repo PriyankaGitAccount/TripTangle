@@ -1,221 +1,279 @@
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { BRAND } from '@/lib/constants';
+import { TripTangleLogo } from '@/components/ui/logo';
 
-/* ─── Step cards ─── */
+// ── Step data ─────────────────────────────────────────────────────
 const STEPS = [
   {
     num: '01',
-    icon: '✈️',
-    color: '#EA580C',
+    emoji: '✈️',
     title: 'Create your trip',
     desc: 'Name it, pick a date range, get a shareable link in seconds.',
   },
   {
     num: '02',
-    icon: '📅',
-    color: '#D97706',
+    emoji: '📅',
     title: 'Everyone marks dates',
-    desc: 'Friends tap free, maybe or busy — no account needed.',
+    desc: 'Friends easily mark their availability (free, busy, maybe) — sign in with Google.',
   },
   {
     num: '03',
-    icon: '🤖',
-    color: '#16A34A',
+    emoji: '🤖',
     title: 'AI finds the sweet spot',
     desc: 'Analyses all responses and surfaces the best travel windows.',
   },
   {
     num: '04',
-    icon: '🗳️',
-    color: '#9A3412',
+    emoji: '🔒',
     title: 'Group votes, trip locked',
     desc: 'Highest votes win. Dates locked. Time to pack your bags.',
   },
 ];
 
+// ── Compass rose SVG ─────────────────────────────────────────────
+function CompassRose({ size = 300 }: { size?: number }) {
+  const rings = [97, 78, 58, 38];
+  const angles = [0,22.5,45,67.5,90,112.5,135,157.5,180,202.5,225,247.5,270,292.5,315,337.5];
+  return (
+    <svg width={size} height={size} viewBox="0 0 200 200" fill="none" aria-hidden="true">
+      {rings.map((r) => (
+        <circle key={r} cx="100" cy="100" r={r} stroke="currentColor"
+          strokeWidth={r === 97 ? 0.8 : 0.5} opacity={r === 97 ? 0.5 : 0.3}/>
+      ))}
+      {angles.map((angle) => {
+        const isCard = angle % 90 === 0;
+        const isOrd = angle % 45 === 0;
+        return (
+          <line key={angle} x1="100" y1={isCard ? '3' : isOrd ? '12' : '22'}
+            x2="100" y2="97" stroke="currentColor"
+            strokeWidth={isCard ? 1.2 : isOrd ? 0.7 : 0.4}
+            opacity={isCard ? 0.5 : isOrd ? 0.32 : 0.16}
+            transform={`rotate(${angle} 100 100)`}/>
+        );
+      })}
+      <path d="M100 20 L106 95 L180 100 L106 105 L100 180 L94 105 L20 100 L94 95Z"
+        fill="currentColor" opacity="0.14"/>
+      <text x="100" y="10" textAnchor="middle" fontSize="11" fill="currentColor"
+        opacity="0.55" fontWeight="bold" fontFamily="Georgia,serif">N</text>
+      <text x="100" y="196" textAnchor="middle" fontSize="9" fill="currentColor"
+        opacity="0.4" fontFamily="Georgia,serif">S</text>
+      <text x="192" y="104" textAnchor="middle" fontSize="9" fill="currentColor"
+        opacity="0.4" fontFamily="Georgia,serif">E</text>
+      <text x="8" y="104" textAnchor="middle" fontSize="9" fill="currentColor"
+        opacity="0.4" fontFamily="Georgia,serif">W</text>
+      <circle cx="100" cy="100" r="4" fill="currentColor" opacity="0.3"/>
+    </svg>
+  );
+}
+
 export default async function HomePage() {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (user) redirect('/dashboard');
+
   return (
-    <div className="min-h-screen flex flex-col overflow-x-hidden bg-[#FFFBF5]">
+    <div className="min-h-screen flex flex-col overflow-x-hidden"
+      style={{ background: '#ede4ce', color: '#2d1f14' }}>
 
-      {/* ── Nav ── */}
-      <nav className="relative z-20 flex items-center justify-between px-6 py-5 sm:px-10">
-        <div className="flex items-center gap-2.5">
-          <div
-            className="h-9 w-9 rounded-2xl flex items-center justify-center text-white font-black text-base"
-            style={{ background: 'linear-gradient(135deg, #EA580C, #D97706)' }}
-          >
-            T
-          </div>
-          <span className="text-[#9A3412] font-bold tracking-wider text-sm">
-            {BRAND.name}
-          </span>
+      {/* ── Parchment map-line texture overlay ───────────────────── */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {/* Subtle horizontal map lines */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="mapgrid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+              <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#5a3a1a" strokeWidth="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#mapgrid)"/>
+        </svg>
+
+        {/* Large compass — left center */}
+        <div className="absolute left-[-60px] top-[15%] text-[#6b5040]">
+          <CompassRose size={340}/>
         </div>
-        <Link href="/create">
-          <button
-            className="rounded-full px-5 py-2.5 text-sm font-semibold text-[#9A3412] bg-white/80 shadow-sm hover:shadow-md hover:bg-white transition-all"
-          >
-            Start planning
-          </button>
-        </Link>
-      </nav>
-
-      {/* ── Hero ── */}
-      <section className="relative flex flex-col items-center justify-center px-6 py-16 sm:py-20 text-center overflow-hidden">
-
-        {/* Background warm glow blobs */}
-        <div className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 h-[500px] w-[500px] rounded-full opacity-20 blur-[100px]"
-            style={{ background: 'radial-gradient(circle, #FDBA74, transparent)' }} />
-          <div className="absolute bottom-1/4 left-1/4 h-80 w-80 rounded-full opacity-15 blur-[80px]"
-            style={{ background: 'radial-gradient(circle, #FDE68A, transparent)' }} />
-          <div className="absolute top-1/3 right-1/4 h-72 w-72 rounded-full opacity-10 blur-[80px]"
-            style={{ background: 'radial-gradient(circle, #FCA5A5, transparent)' }} />
+        {/* Large compass — top right */}
+        <div className="absolute right-[-40px] top-[-20px] text-[#6b5040]">
+          <CompassRose size={280}/>
+        </div>
+        {/* Small compass — bottom right */}
+        <div className="absolute right-[5%] bottom-[12%] text-[#6b5040] opacity-50">
+          <CompassRose size={160}/>
         </div>
 
-        {/* App name — large and prominent */}
-        <h1
-          className="font-black text-[#3C1106] mb-4"
-          style={{ fontSize: 'clamp(3.5rem, 10vw, 7rem)', lineHeight: 1 }}
-        >
-          <span
-            className="inline-block"
-            style={{
-              background: 'linear-gradient(90deg, #EA580C, #D97706, #EA580C)',
-              backgroundSize: '200% auto',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              animation: 'shimmer 3s linear infinite',
-            }}
-          >
-            {BRAND.name}
-          </span>
+        {/* Sketch city illustration — right side of hero */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://source.unsplash.com/1200x900/?venice,canal,europe,architecture,historical"
+          alt=""
+          className="absolute right-0 top-0 h-[560px] w-[55%] object-cover object-left"
+          style={{
+            filter: 'grayscale(1) contrast(0.22) brightness(3.2) sepia(0.25)',
+            opacity: 0.55,
+            maskImage: 'linear-gradient(to left, rgba(0,0,0,0.7) 40%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to left, rgba(0,0,0,0.7) 40%, transparent 100%)',
+          }}
+        />
+      </div>
+
+      {/* ── Star badge (top-left corner) ─────────────────────────── */}
+      <div className="fixed top-0 left-0 z-30 w-12 h-12 flex items-center justify-center"
+        style={{ background: '#6b5040' }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="white" aria-hidden="true">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      </div>
+
+      {/* ── Nav ──────────────────────────────────────────────────── */}
+      {/* Nav is intentionally minimal — star badge is fixed top-left; no logo or CTA here */}
+      <nav className="relative z-20 h-14 sm:h-16" aria-hidden="true"/>
+
+      {/* ── Hero ─────────────────────────────────────────────────── */}
+      <section className="relative z-10 flex flex-col items-center text-center px-6 pt-4 pb-20">
+
+        {/* Brand logo */}
+        <div className="mb-4">
+          <TripTangleLogo size={90}/>
+        </div>
+
+        {/* Main heading */}
+        <h1 className="font-black tracking-tight leading-tight mb-3"
+          style={{
+            fontSize: 'clamp(2.8rem, 7vw, 5.5rem)',
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            color: '#2d1f14',
+          }}>
+          TripTangle
         </h1>
 
-        {/* Badge */}
-        <div
-          className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/70 shadow-sm px-4 py-1.5 text-xs font-medium text-[#9A3412]/60"
-        >
-          <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-          No sign-up required · AI-powered · Free
-        </div>
-
-        {/* Subtitle */}
-        <p
-          className="mx-auto max-w-3xl font-semibold text-[#3C1106]/70 mb-4"
-          style={{ fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)' }}
-        >
+        {/* Sub-heading */}
+        <p className="font-bold mb-4 max-w-2xl"
+          style={{
+            fontSize: 'clamp(1.5rem, 3.5vw, 2.4rem)',
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            color: '#2d1f14',
+            lineHeight: 1.25,
+          }}>
           Plan your next trip, together.
         </p>
 
-        {/* Subheadline */}
-        <p className="mx-auto max-w-lg text-base text-[#9A3412]/50 leading-relaxed">
+        {/* Body copy */}
+        <p className="mb-7 max-w-lg text-base leading-relaxed" style={{ color: '#5a4030' }}>
           Stop losing your group trip in a 400-message chat.
-          Share a link, pick dates, and let AI find the perfect window.
+          <br/>
+          Share a link, pick dates, and let AI find the{' '}
+          <strong style={{ color: '#2d1f14' }}>perfect window.</strong>
         </p>
 
-        {/* CTA */}
-        <div className="mt-10 flex flex-col sm:flex-row items-center gap-4">
-          <Link href="/create">
+        {/* Feature bar */}
+        <div className="mb-8 flex items-center gap-5 rounded-xl px-6 py-3 text-sm font-medium text-white"
+          style={{ background: '#5a4030' }}>
+          <span className="flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            No sign-up required
+          </span>
+          <span className="flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            AI-powered
+          </span>
+          <span className="flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Free
+          </span>
+        </div>
+
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row items-center gap-4 mb-10">
+          <Link href="/login">
             <button
-              className="relative h-14 rounded-full px-10 text-base font-bold text-white shadow-xl transition-all hover:scale-105 hover:shadow-2xl active:scale-[0.97]"
-              style={{
-                background: 'linear-gradient(135deg, #EA580C 0%, #D97706 100%)',
-                boxShadow: '0 8px 32px rgba(234,88,12,0.3)',
-              }}
-            >
+              className="rounded-xl px-8 py-3.5 text-base font-bold text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{ background: '#d4622a' }}>
               Create a trip — it&apos;s free
             </button>
           </Link>
-          <a href="#how-it-works" className="text-sm text-[#9A3412]/40 hover:text-[#9A3412]/70 transition-colors">
-            See how it works ↓
+          <a href="#how-it-works"
+            className="text-base font-semibold underline underline-offset-4 decoration-1 transition-colors"
+            style={{ color: '#2d1f14' }}>
+            See how it works
           </a>
         </div>
 
         {/* Social proof */}
-        <div className="mt-10 flex items-center gap-3">
-          <div className="flex -space-x-2">
-            {['#EA580C','#D97706','#16A34A','#9A3412','#DC2626'].map((c, i) => (
-              <div
-                key={i}
-                className="h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold text-white"
-                style={{ borderColor: '#FFFBF5', background: c }}
-              >
-                {['A','J','S','P','R'][i]}
+        <div className="flex items-center gap-3">
+          <div className="flex -space-x-2.5">
+            {[
+              { initials: 'P', bg: '#c4622a' },
+              { initials: 'A', bg: '#7a5c3a' },
+              { initials: 'S', bg: '#4a7a5a' },
+              { initials: 'J', bg: '#3a5a7a' },
+            ].map(({ initials, bg }) => (
+              <div key={initials}
+                className="h-9 w-9 rounded-full border-2 flex items-center justify-center text-xs font-bold text-white"
+                style={{ borderColor: '#ede4ce', background: bg }}>
+                {initials}
               </div>
             ))}
           </div>
-          <p className="text-sm text-[#9A3412]/40">
-            Groups planned this week
+          <p className="text-sm font-medium" style={{ color: '#5a4030' }}>
+            <strong style={{ color: '#2d1f14' }}>4,310</strong> groups planned this week
           </p>
         </div>
       </section>
 
-      {/* ── How it works ── */}
-      <section id="how-it-works" className="relative px-6 py-12 sm:px-10 bg-white/50">
+      {/* ── How it works ─────────────────────────────────────────── */}
+      <section id="how-it-works" className="relative z-10 px-6 py-14 sm:px-10"
+        style={{ background: 'rgba(237, 228, 206, 0.85)' }}>
         <div className="mx-auto max-w-5xl">
-          <div className="text-center mb-14">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#9A3412]/30 mb-3">
-              How it works
-            </p>
-            <h2
-              className="font-black text-[#3C1106]"
-              style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)' }}
-            >
-              From group chat chaos{' '}
-              <span className="text-[#EA580C]">to confirmed trip.</span>
-            </h2>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {STEPS.map((step, i) => (
-              <div
-                key={step.num}
-                className="relative rounded-2xl bg-white p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-              >
-                {/* Connector dot */}
-                {i < STEPS.length - 1 && (
-                  <div
-                    className="absolute hidden lg:block top-10 -right-2.5 h-2 w-2 rounded-full"
-                    style={{ background: step.color }}
-                  />
-                )}
-                <div
-                  className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl text-2xl"
-                  style={{ background: `${step.color}12` }}
-                >
-                  {step.icon}
+          <h2 className="text-center font-black mb-12"
+            style={{
+              fontSize: 'clamp(1.6rem, 4vw, 2.6rem)',
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              color: '#2d1f14',
+            }}>
+            From group chat chaos to confirmed trip.
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {STEPS.map((step) => (
+              <div key={step.num}
+                className="rounded-2xl p-6 border transition-all hover:-translate-y-1 hover:shadow-lg"
+                style={{
+                  background: 'rgba(255, 252, 244, 0.92)',
+                  borderColor: '#c8b898',
+                  boxShadow: '0 2px 12px rgba(90,60,30,0.08)',
+                }}>
+                {/* Illustration emoji */}
+                <div className="text-5xl mb-5 leading-none" style={{ filter: 'sepia(0.3)' }}>
+                  {step.emoji}
                 </div>
-                <p
-                  className="text-[10px] font-black tracking-widest mb-2"
-                  style={{ color: step.color }}
-                >
+                <p className="text-[10px] font-black tracking-widest mb-2"
+                  style={{ color: '#a07048' }}>
                   STEP {step.num}
                 </p>
-                <h3 className="text-[#3C1106] font-bold text-sm mb-2">{step.title}</h3>
-                <p className="text-[#9A3412]/40 text-xs leading-relaxed">{step.desc}</p>
+                <h3 className="font-bold text-base mb-2" style={{ color: '#2d1f14', fontFamily: 'Georgia,serif' }}>
+                  {step.title}
+                </h3>
+                <p className="text-xs leading-relaxed" style={{ color: '#7a6050' }}>
+                  {step.desc}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      <footer className="px-8 py-6 text-center text-xs text-[#9A3412]/25">
-        {BRAND.name} · {BRAND.tagline}
+      {/* ── Footer ───────────────────────────────────────────────── */}
+      <footer className="relative z-10 px-8 py-6 text-center text-xs border-t"
+        style={{ color: '#a08060', borderColor: '#c8b898' }}>
+        TripTangle · Untangle your group trip
       </footer>
-
-      {/* ── Keyframe styles ── */}
-      <style>{`
-        @keyframes shimmer {
-          0%   { background-position: 0% center; }
-          100% { background-position: 200% center; }
-        }
-      `}</style>
     </div>
   );
 }

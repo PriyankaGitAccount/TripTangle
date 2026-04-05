@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { TripTangleLogo } from '@/components/ui/logo';
 import { toast } from 'sonner';
 
 export default function JoinPage() {
@@ -59,7 +60,7 @@ export default function JoinPage() {
     <div className="flex flex-1 flex-col items-center justify-center px-6 py-10">
       <div className="w-full max-w-sm">
         <div className="rounded-2xl bg-card shadow-md p-8 text-center">
-          <div className="mb-6 text-5xl">🌴</div>
+          <div className="mb-6 flex justify-center"><TripTangleLogo size={64} /></div>
           <h1 className="mb-2 text-2xl font-bold text-brand-deep">
             Join the Trip
           </h1>
