@@ -187,6 +187,207 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── How it works ─────────────────────────────────────────── */}
+      <section className="relative z-10 px-6 py-16 sm:px-10"
+        style={{ background: 'rgba(237, 228, 206, 0.9)' }}>
+        <div className="mx-auto max-w-5xl">
+          <h2 className="text-center font-bold mb-10"
+            style={{
+              fontSize: 'clamp(1.4rem, 3.5vw, 2.2rem)',
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              color: '#2d1f14',
+            }}>
+            From group chat chaos to confirmed trip.
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+            {/* Step 01 — Create your trip (Biplane) */}
+            <div className="rounded-2xl p-5 border flex flex-col"
+              style={{ background: 'rgba(255,252,244,0.95)', borderColor: '#c8b898', boxShadow: '0 2px 10px rgba(90,60,30,0.07)' }}>
+              <div className="flex items-center justify-center h-36 mb-4">
+                <svg viewBox="0 0 200 150" fill="none" className="w-full h-full" aria-hidden="true">
+                  {/* Upper wing */}
+                  <path d="M25 62 L168 48 L168 56 L25 70Z" fill="#d4b896" stroke="#7a5c3a" strokeWidth="1.8"/>
+                  {/* Lower wing */}
+                  <path d="M50 84 L152 74 L152 82 L50 92Z" fill="#d4b896" stroke="#7a5c3a" strokeWidth="1.8"/>
+                  {/* Fuselage */}
+                  <path d="M58 60 Q110 52 165 64 Q178 70 165 78 Q110 88 58 84 Q44 75 58 60Z" fill="#e8d5b5" stroke="#7a5c3a" strokeWidth="1.8"/>
+                  {/* Nose cone */}
+                  <path d="M165 64 L185 70 L165 78Z" fill="#d4b896" stroke="#7a5c3a" strokeWidth="1.4"/>
+                  {/* Propeller hub */}
+                  <circle cx="186" cy="70" r="3" fill="#7a5c3a"/>
+                  {/* Propeller blades */}
+                  <path d="M186 57 Q189 63 186 70 Q183 63 186 57Z" fill="#7a5c3a" opacity="0.7"/>
+                  <path d="M186 83 Q183 77 186 70 Q189 77 186 83Z" fill="#7a5c3a" opacity="0.7"/>
+                  {/* Tail fin */}
+                  <path d="M58 68 L32 55 L38 68 L32 82 L58 76Z" fill="#d4b896" stroke="#7a5c3a" strokeWidth="1.4"/>
+                  {/* Struts */}
+                  <line x1="88" y1="57" x2="88" y2="80" stroke="#7a5c3a" strokeWidth="1.4"/>
+                  <line x1="132" y1="53" x2="132" y2="76" stroke="#7a5c3a" strokeWidth="1.4"/>
+                  {/* Cross wires */}
+                  <line x1="88" y1="57" x2="132" y2="76" stroke="#7a5c3a" strokeWidth="0.7" opacity="0.45"/>
+                  <line x1="132" y1="53" x2="88" y2="80" stroke="#7a5c3a" strokeWidth="0.7" opacity="0.45"/>
+                  {/* Cockpit window */}
+                  <ellipse cx="138" cy="68" rx="10" ry="7" fill="#c8dce8" stroke="#7a5c3a" strokeWidth="1.2" opacity="0.8"/>
+                  {/* Landing gear */}
+                  <line x1="90" y1="84" x2="90" y2="100" stroke="#7a5c3a" strokeWidth="1.4"/>
+                  <line x1="125" y1="82" x2="125" y2="98" stroke="#7a5c3a" strokeWidth="1.4"/>
+                  <line x1="75" y1="100" x2="105" y2="100" stroke="#7a5c3a" strokeWidth="1.4"/>
+                  <line x1="110" y1="98" x2="140" y2="98" stroke="#7a5c3a" strokeWidth="1.4"/>
+                  <circle cx="82" cy="102" r="5" fill="none" stroke="#7a5c3a" strokeWidth="1.4"/>
+                  <circle cx="98" cy="102" r="5" fill="none" stroke="#7a5c3a" strokeWidth="1.4"/>
+                  <circle cx="116" cy="100" r="5" fill="none" stroke="#7a5c3a" strokeWidth="1.4"/>
+                  <circle cx="132" cy="100" r="5" fill="none" stroke="#7a5c3a" strokeWidth="1.4"/>
+                </svg>
+              </div>
+              <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#a07048' }}>STEP 01</p>
+              <h3 className="font-bold text-base mb-1.5" style={{ color: '#2d1f14', fontFamily: 'Georgia,serif' }}>Create your trip</h3>
+              <p className="text-xs leading-relaxed" style={{ color: '#7a6050' }}>Name it, pick a date range, get a shareable link in seconds.</p>
+            </div>
+
+            {/* Step 02 — Everyone marks dates (Calendar + Avatars) */}
+            <div className="rounded-2xl p-5 border flex flex-col"
+              style={{ background: 'rgba(255,252,244,0.95)', borderColor: '#c8b898', boxShadow: '0 2px 10px rgba(90,60,30,0.07)' }}>
+              <div className="flex items-center justify-center h-36 mb-4">
+                <svg viewBox="0 0 200 150" fill="none" className="w-full h-full" aria-hidden="true">
+                  {/* Calendar body */}
+                  <rect x="52" y="28" width="96" height="94" rx="6" fill="#f5ede0" stroke="#7a5c3a" strokeWidth="1.8"/>
+                  {/* Calendar header */}
+                  <rect x="52" y="28" width="96" height="20" rx="6" fill="#c8a87a" stroke="#7a5c3a" strokeWidth="1.8"/>
+                  <rect x="52" y="40" width="96" height="8" fill="#c8a87a"/>
+                  {/* Header rings */}
+                  <line x1="78" y1="22" x2="78" y2="34" stroke="#7a5c3a" strokeWidth="2.5" strokeLinecap="round"/>
+                  <line x1="122" y1="22" x2="122" y2="34" stroke="#7a5c3a" strokeWidth="2.5" strokeLinecap="round"/>
+                  {/* Day labels */}
+                  {['M','T','W','T','F'].map((d, i) => (
+                    <text key={i} x={63 + i * 17} y="60" textAnchor="middle" fontSize="7" fill="#7a5c3a" fontWeight="bold" fontFamily="Georgia,serif">{d}</text>
+                  ))}
+                  {/* Row 1: free, free, busy, maybe, free */}
+                  <rect x="55" y="64" width="13" height="10" rx="2" fill="#6ab87a" opacity="0.85"/>
+                  <rect x="72" y="64" width="13" height="10" rx="2" fill="#6ab87a" opacity="0.85"/>
+                  <rect x="89" y="64" width="13" height="10" rx="2" fill="#e07070" opacity="0.85"/>
+                  <rect x="106" y="64" width="13" height="10" rx="2" fill="#f0c060" opacity="0.85"/>
+                  <rect x="123" y="64" width="13" height="10" rx="2" fill="#6ab87a" opacity="0.85"/>
+                  {/* Row 2 */}
+                  <rect x="55" y="78" width="13" height="10" rx="2" fill="#f0c060" opacity="0.85"/>
+                  <rect x="72" y="78" width="13" height="10" rx="2" fill="#6ab87a" opacity="0.85"/>
+                  <rect x="89" y="78" width="13" height="10" rx="2" fill="#6ab87a" opacity="0.85"/>
+                  <rect x="106" y="78" width="13" height="10" rx="2" fill="#e07070" opacity="0.85"/>
+                  <rect x="123" y="78" width="13" height="10" rx="2" fill="#6ab87a" opacity="0.85"/>
+                  {/* Row 3 */}
+                  <rect x="55" y="92" width="13" height="10" rx="2" fill="#6ab87a" opacity="0.85"/>
+                  <rect x="72" y="92" width="13" height="10" rx="2" fill="#e07070" opacity="0.85"/>
+                  <rect x="89" y="92" width="13" height="10" rx="2" fill="#f0c060" opacity="0.85"/>
+                  <rect x="106" y="92" width="13" height="10" rx="2" fill="#6ab87a" opacity="0.85"/>
+                  <rect x="123" y="92" width="13" height="10" rx="2" fill="#6ab87a" opacity="0.85"/>
+                  {/* Labels */}
+                  <text x="63" y="70" textAnchor="middle" fontSize="5.5" fill="white" fontWeight="bold">free</text>
+                  <text x="97" y="70" textAnchor="middle" fontSize="5.5" fill="white" fontWeight="bold">busy</text>
+                  <text x="114" y="70" textAnchor="middle" fontSize="5" fill="#7a5020" fontWeight="bold">maybe</text>
+                  {/* Avatar circles around calendar */}
+                  <circle cx="30" cy="50" r="16" fill="#c4622a" stroke="#f5ede0" strokeWidth="2"/>
+                  <circle cx="30" cy="47" r="6" fill="#e8c4a0"/>
+                  <path d="M18 66 Q30 58 42 66" fill="#c4622a"/>
+                  <circle cx="170" cy="45" r="16" fill="#3a7a5a" stroke="#f5ede0" strokeWidth="2"/>
+                  <circle cx="170" cy="42" r="6" fill="#e8c4a0"/>
+                  <path d="M158 61 Q170 53 182 61" fill="#3a7a5a"/>
+                  <circle cx="28" cy="110" r="14" fill="#3a5a7a" stroke="#f5ede0" strokeWidth="2"/>
+                  <circle cx="28" cy="107" r="5" fill="#e8c4a0"/>
+                  <path d="M17 123 Q28 115 39 123" fill="#3a5a7a"/>
+                  <circle cx="172" cy="108" r="14" fill="#7a5c3a" stroke="#f5ede0" strokeWidth="2"/>
+                  <circle cx="172" cy="105" r="5" fill="#e8c4a0"/>
+                  <path d="M161 121 Q172 113 183 121" fill="#7a5c3a"/>
+                </svg>
+              </div>
+              <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#a07048' }}>STEP 02</p>
+              <h3 className="font-bold text-base mb-1.5" style={{ color: '#2d1f14', fontFamily: 'Georgia,serif' }}>Everyone marks dates</h3>
+              <p className="text-xs leading-relaxed" style={{ color: '#7a6050' }}>Friends easily mark their availability (free, busy, maybe) — no account needed.</p>
+            </div>
+
+            {/* Step 03 — AI finds the sweet spot (Globe + Robot) */}
+            <div className="rounded-2xl p-5 border flex flex-col"
+              style={{ background: 'rgba(255,252,244,0.95)', borderColor: '#c8b898', boxShadow: '0 2px 10px rgba(90,60,30,0.07)' }}>
+              <div className="flex items-center justify-center h-36 mb-4">
+                <svg viewBox="0 0 200 150" fill="none" className="w-full h-full" aria-hidden="true">
+                  {/* Globe stand */}
+                  <line x1="100" y1="118" x2="100" y2="132" stroke="#7a5c3a" strokeWidth="2.5" strokeLinecap="round"/>
+                  <ellipse cx="100" cy="133" rx="22" ry="5" fill="#c8a87a" stroke="#7a5c3a" strokeWidth="1.4"/>
+                  <line x1="78" y1="133" x2="122" y2="133" stroke="#7a5c3a" strokeWidth="2"/>
+                  {/* Globe body */}
+                  <circle cx="100" cy="72" r="46" fill="#d8eaf5" stroke="#7a5c3a" strokeWidth="1.8"/>
+                  {/* Meridians */}
+                  <ellipse cx="100" cy="72" rx="20" ry="46" fill="none" stroke="#7a5c3a" strokeWidth="1" opacity="0.5"/>
+                  <ellipse cx="100" cy="72" rx="38" ry="46" fill="none" stroke="#7a5c3a" strokeWidth="1" opacity="0.3"/>
+                  {/* Parallels */}
+                  <ellipse cx="100" cy="55" rx="43" ry="8" fill="none" stroke="#7a5c3a" strokeWidth="1" opacity="0.4"/>
+                  <ellipse cx="100" cy="72" rx="46" ry="10" fill="none" stroke="#7a5c3a" strokeWidth="1" opacity="0.4"/>
+                  <ellipse cx="100" cy="89" rx="43" ry="8" fill="none" stroke="#7a5c3a" strokeWidth="1" opacity="0.4"/>
+                  {/* Continents (simplified) */}
+                  <path d="M72 55 Q80 48 90 52 Q96 58 88 65 Q80 68 72 62Z" fill="#b8c87a" opacity="0.7"/>
+                  <path d="M108 50 Q118 44 126 50 Q132 58 124 66 Q114 70 108 62Z" fill="#b8c87a" opacity="0.7"/>
+                  <path d="M78 72 Q88 68 96 74 Q100 82 92 88 Q82 90 76 82Z" fill="#b8c87a" opacity="0.7"/>
+                  {/* Robot face overlay (top-right of globe) */}
+                  <rect x="118" y="26" width="36" height="30" rx="5" fill="#e8d5b5" stroke="#7a5c3a" strokeWidth="1.5"/>
+                  <rect x="122" y="20" width="8" height="8" rx="2" fill="#c8a87a" stroke="#7a5c3a" strokeWidth="1.2"/>
+                  <rect x="142" y="20" width="8" height="8" rx="2" fill="#c8a87a" stroke="#7a5c3a" strokeWidth="1.2"/>
+                  {/* Robot eyes */}
+                  <rect x="123" y="32" width="10" height="7" rx="2" fill="#4a8ac8" stroke="#7a5c3a" strokeWidth="1"/>
+                  <rect x="139" y="32" width="10" height="7" rx="2" fill="#4a8ac8" stroke="#7a5c3a" strokeWidth="1"/>
+                  <circle cx="128" cy="35" r="2" fill="white"/>
+                  <circle cx="144" cy="35" r="2" fill="white"/>
+                  {/* Robot mouth */}
+                  <path d="M124 44 Q136 50 148 44" stroke="#7a5c3a" strokeWidth="1.5" strokeLinecap="round"/>
+                  {/* Gear icon */}
+                  <circle cx="136" cy="58" r="5" fill="none" stroke="#c8a87a" strokeWidth="1.5"/>
+                  <circle cx="136" cy="58" r="2" fill="#c8a87a"/>
+                </svg>
+              </div>
+              <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#a07048' }}>STEP 03</p>
+              <h3 className="font-bold text-base mb-1.5" style={{ color: '#2d1f14', fontFamily: 'Georgia,serif' }}>AI finds the sweet spot</h3>
+              <p className="text-xs leading-relaxed" style={{ color: '#7a6050' }}>Analyzes all responses and surfaces the best travel windows.</p>
+            </div>
+
+            {/* Step 04 — Group votes, trip locked (Passport + Lock) */}
+            <div className="rounded-2xl p-5 border flex flex-col"
+              style={{ background: 'rgba(255,252,244,0.95)', borderColor: '#c8b898', boxShadow: '0 2px 10px rgba(90,60,30,0.07)' }}>
+              <div className="flex items-center justify-center h-36 mb-4">
+                <svg viewBox="0 0 200 150" fill="none" className="w-full h-full" aria-hidden="true">
+                  {/* Passport book */}
+                  <rect x="38" y="20" width="88" height="110" rx="6" fill="#1a4a7a" stroke="#0e2d52" strokeWidth="1.8"/>
+                  <rect x="44" y="26" width="76" height="98" rx="4" fill="#1e5590"/>
+                  {/* Passport spine */}
+                  <rect x="38" y="20" width="10" height="110" rx="3" fill="#0e2d52"/>
+                  {/* Globe emblem on passport */}
+                  <circle cx="82" cy="68" r="22" fill="none" stroke="#c8b050" strokeWidth="1.5" opacity="0.8"/>
+                  <ellipse cx="82" cy="68" rx="10" ry="22" fill="none" stroke="#c8b050" strokeWidth="1" opacity="0.6"/>
+                  <ellipse cx="82" cy="68" rx="22" ry="8" fill="none" stroke="#c8b050" strokeWidth="1" opacity="0.6"/>
+                  <circle cx="82" cy="68" r="5" fill="#c8b050" opacity="0.7"/>
+                  {/* Passport text lines */}
+                  <rect x="52" y="98" width="60" height="4" rx="2" fill="#c8b050" opacity="0.5"/>
+                  <rect x="52" y="106" width="46" height="4" rx="2" fill="#c8b050" opacity="0.35"/>
+                  {/* Stars decoration */}
+                  <text x="57" y="44" fontSize="8" fill="#c8b050" opacity="0.7">★ ★ ★</text>
+                  {/* Padlock */}
+                  <rect x="112" y="62" width="52" height="44" rx="8" fill="#c8a020" stroke="#7a6010" strokeWidth="2"/>
+                  {/* Lock shackle */}
+                  <path d="M124 62 L124 48 Q138 36 152 48 L152 62" fill="none" stroke="#7a6010" strokeWidth="4.5" strokeLinecap="round"/>
+                  {/* Keyhole */}
+                  <circle cx="138" cy="82" r="8" fill="#7a6010" opacity="0.6"/>
+                  <rect x="134" y="86" width="8" height="10" rx="2" fill="#7a6010" opacity="0.6"/>
+                  {/* Shine on lock */}
+                  <path d="M118 68 Q122 66 126 68" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
+                </svg>
+              </div>
+              <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#a07048' }}>STEP 04</p>
+              <h3 className="font-bold text-base mb-1.5" style={{ color: '#2d1f14', fontFamily: 'Georgia,serif' }}>Group votes, trip locked</h3>
+              <p className="text-xs leading-relaxed" style={{ color: '#7a6050' }}>Highest votes win, dates locked. Time to pack your bags.</p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* ── Footer ───────────────────────────────────────────────── */}
       <footer className="relative z-10 px-8 py-6 text-center text-xs border-t"
         style={{ color: '#a08060', borderColor: '#c8b898' }}>
