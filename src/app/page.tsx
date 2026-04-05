@@ -3,34 +3,6 @@ import { createServerClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { TripTangleLogo } from '@/components/ui/logo';
 
-// ── Step data ─────────────────────────────────────────────────────
-const STEPS = [
-  {
-    num: '01',
-    emoji: '✈️',
-    title: 'Create your trip',
-    desc: 'Name it, pick a date range, get a shareable link in seconds.',
-  },
-  {
-    num: '02',
-    emoji: '📅',
-    title: 'Everyone marks dates',
-    desc: 'Friends easily mark their availability (free, busy, maybe) — sign in with Google.',
-  },
-  {
-    num: '03',
-    emoji: '🤖',
-    title: 'AI finds the sweet spot',
-    desc: 'Analyses all responses and surfaces the best travel windows.',
-  },
-  {
-    num: '04',
-    emoji: '🔒',
-    title: 'Group votes, trip locked',
-    desc: 'Highest votes win. Dates locked. Time to pack your bags.',
-  },
-];
-
 // ── Compass rose SVG ─────────────────────────────────────────────
 function CompassRose({ size = 300 }: { size?: number }) {
   const rings = [97, 78, 58, 38];
@@ -172,12 +144,6 @@ export default async function HomePage() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            No sign-up required
-          </span>
-          <span className="flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
             AI-powered
           </span>
           <span className="flex items-center gap-1.5">
@@ -192,16 +158,11 @@ export default async function HomePage() {
         <div className="flex flex-col sm:flex-row items-center gap-4 mb-10">
           <Link href="/login">
             <button
-              className="rounded-xl px-8 py-3.5 text-base font-bold text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="rounded-2xl px-12 py-5 text-xl font-bold text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
               style={{ background: '#d4622a' }}>
               Create a trip — it&apos;s free
             </button>
           </Link>
-          <a href="#how-it-works"
-            className="text-base font-semibold underline underline-offset-4 decoration-1 transition-colors"
-            style={{ color: '#2d1f14' }}>
-            See how it works
-          </a>
         </div>
 
         {/* Social proof */}
@@ -223,49 +184,6 @@ export default async function HomePage() {
           <p className="text-sm font-medium" style={{ color: '#5a4030' }}>
             <strong style={{ color: '#2d1f14' }}>4,310</strong> groups planned this week
           </p>
-        </div>
-      </section>
-
-      {/* ── How it works ─────────────────────────────────────────── */}
-      <section id="how-it-works" className="relative z-10 px-6 py-14 sm:px-10"
-        style={{ background: 'rgba(237, 228, 206, 0.85)' }}>
-        <div className="mx-auto max-w-5xl">
-
-          <h2 className="text-center font-black mb-12"
-            style={{
-              fontSize: 'clamp(1.6rem, 4vw, 2.6rem)',
-              fontFamily: 'Georgia, "Times New Roman", serif',
-              color: '#2d1f14',
-            }}>
-            From group chat chaos to confirmed trip.
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {STEPS.map((step) => (
-              <div key={step.num}
-                className="rounded-2xl p-6 border transition-all hover:-translate-y-1 hover:shadow-lg"
-                style={{
-                  background: 'rgba(255, 252, 244, 0.92)',
-                  borderColor: '#c8b898',
-                  boxShadow: '0 2px 12px rgba(90,60,30,0.08)',
-                }}>
-                {/* Illustration emoji */}
-                <div className="text-5xl mb-5 leading-none" style={{ filter: 'sepia(0.3)' }}>
-                  {step.emoji}
-                </div>
-                <p className="text-[10px] font-black tracking-widest mb-2"
-                  style={{ color: '#a07048' }}>
-                  STEP {step.num}
-                </p>
-                <h3 className="font-bold text-base mb-2" style={{ color: '#2d1f14', fontFamily: 'Georgia,serif' }}>
-                  {step.title}
-                </h3>
-                <p className="text-xs leading-relaxed" style={{ color: '#7a6050' }}>
-                  {step.desc}
-                </p>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
