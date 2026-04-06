@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { useRealtimeMembers } from '@/hooks/use-realtime-members';
 import { useRealtimeAvailability } from '@/hooks/use-realtime-availability';
@@ -286,13 +287,56 @@ export function TripDashboard({
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-5 pb-16">
+    <div className="w-full min-h-screen">
+
+      {/* ── Sticky nav: My Trips + Logout ── */}
+      <header className="sticky top-0 z-20 border-b border-white/30 bg-white/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 h-13 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <TripTangleLogo size={26} />
+              <span className="font-black text-[#3d2b1f] tracking-tight text-base hidden sm:block" style={{ fontFamily: 'Georgia, serif' }}>
+                TripTangle
+              </span>
+            </Link>
+            <span className="text-[#9a8070] text-sm hidden sm:block">/</span>
+            <Link
+              href="/dashboard"
+              className="text-sm font-semibold hidden sm:block"
+              style={{ color: '#d4622a' }}
+            >
+              ← My Trips
+            </Link>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard"
+              className="sm:hidden text-sm font-semibold"
+              style={{ color: '#d4622a' }}
+            >
+              ← My Trips
+            </Link>
+            <form action="/api/auth/logout" method="POST">
+              <button
+                type="submit"
+                className="text-xs px-3 py-1.5 rounded-xl font-medium transition-colors"
+                style={{ color: '#7a6350', background: 'rgba(255,255,255,0.6)' }}
+              >
+                Log out
+              </button>
+            </form>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 py-5 pb-16">
 
       {/* Full-width top bar */}
       <div className="mb-5">
         <TripHeader
           trip={tripState}
           isLocked={isLocked}
+          isOrganizer={isCreator}
           inviteCount={inviteCount}
           memberCount={members.length}
           submittedCount={submittedCount}
@@ -426,6 +470,8 @@ export function TripDashboard({
           )}
         </div>
       </div>
+
+      </div> {/* end max-w-7xl inner */}
     </div>
   );
 }

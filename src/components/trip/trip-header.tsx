@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 interface TripHeaderProps {
   trip: Trip;
   isLocked?: boolean;
+  isOrganizer?: boolean;
   inviteCount?: number;
   memberCount?: number;
   submittedCount?: number;
@@ -17,6 +18,7 @@ interface TripHeaderProps {
 export function TripHeader({
   trip,
   isLocked: lockedProp,
+  isOrganizer = false,
   inviteCount = 0,
   memberCount = 1,
   submittedCount = 0,
@@ -42,7 +44,7 @@ export function TripHeader({
             </p>
           )}
         </div>
-        {!isLocked && (
+        {!isLocked && isOrganizer && (
           <ShareDialog
             tripId={trip.id}
             tripName={trip.name}
