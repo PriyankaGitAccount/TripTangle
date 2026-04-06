@@ -28,14 +28,21 @@ export function useRealtimePolls(
           });
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'polls', filter: `trip_id=eq.${tripId}` },
+        (payload) => {
+          setPolls((prev) =>
+            prev.map((p) => (p.id === payload.new.id ? (payload.new as Poll) : p))
+          );
+        }
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(pollChannel); };
   }, [tripId]);
 
   useEffect(() => {
-    // Subscribe to all poll_responses for polls in this trip.
-    // Supabase filters don't support JOINs so we subscribe to all and filter client-side.
     const responseChannel = supabase
       .channel(`poll_responses:${tripId}`)
       .on(
@@ -51,6 +58,8 @@ export function useRealtimePolls(
             setResponses((prev) =>
               prev.map((r) => (r.id === payload.new.id ? (payload.new as PollResponse) : r))
             );
+          } else if (payload.eventType === 'DELETE') {
+            setResponses((prev) => prev.filter((r) => r.id !== payload.old.id));
           }
         }
       )
@@ -59,5 +68,5 @@ export function useRealtimePolls(
     return () => { supabase.removeChannel(responseChannel); };
   }, [tripId]);
 
-  return { polls, responses };
+  return { polls, setPolls, responses };
 }

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useMemberIdentity } from '@/hooks/use-member-identity';
 import { TripTangleLogo } from '@/components/ui/logo';
 import { ItineraryBuilder } from './itinerary-builder';
 import { SharedMap } from './shared-map';
@@ -24,6 +23,7 @@ const TABS: { id: Tab; label: string; icon: string; description: string }[] = [
 interface PlanDashboardProps {
   trip: Trip;
   members: Member[];
+  currentMemberId: string;
   initialItinerary: Itinerary | null;
   initialSuggestions: ItinerarySuggestion[];
   initialPins: MapPin[];
@@ -79,13 +79,13 @@ function LogoutButton() {
 }
 
 export function PlanDashboard({
-  trip, members, initialItinerary, initialSuggestions,
+  trip, members, currentMemberId, initialItinerary, initialSuggestions,
   initialPins, initialPolls, initialResponses, initialExpenses, initialPhotos, initialTab,
 }: PlanDashboardProps) {
   const [activeTab, setActiveTab]         = useState<Tab>(initialTab);
   const [itinerary, setItinerary]         = useState<Itinerary | null>(initialItinerary);
   const [itineraryLoading, setItineraryLoading] = useState(false);
-  const { memberId } = useMemberIdentity(trip.id);
+  const memberId = currentMemberId;
 
   const itineraryData: ItineraryData | undefined = itinerary?.itinerary_json;
   const itineraryLat = itineraryData?.destination_lat;

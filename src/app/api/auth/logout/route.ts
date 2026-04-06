@@ -4,5 +4,5 @@ import { createServerClient } from '@/lib/supabase/server';
 export async function POST() {
   const supabase = await createServerClient();
   await supabase.auth.signOut();
-  return NextResponse.redirect(new URL('/login', process.env.NEXT_PUBLIC_BASE_URL!));
+  return NextResponse.redirect(new URL('/', process.env.NEXT_PUBLIC_BASE_URL!));
 }

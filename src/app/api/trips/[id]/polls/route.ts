@@ -7,7 +7,7 @@ export async function POST(
 ) {
   const { id } = await params;
   const body = await req.json();
-  const { member_id, question, options, poll_date } = body;
+  const { member_id, question, options, poll_date, is_multiselect } = body;
 
   if (!member_id || !question?.trim()) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -32,6 +32,7 @@ export async function POST(
       question: question.trim(),
       options: cleanOptions,
       poll_date: poll_date ?? null,
+      is_multiselect: !!is_multiselect,
     })
     .select()
     .single();

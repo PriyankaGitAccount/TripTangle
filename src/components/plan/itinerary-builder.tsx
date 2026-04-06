@@ -385,13 +385,31 @@ export function ItineraryBuilder({
   return (
     <div className="space-y-6">
 
-      {/* ── Regenerate button ── */}
-      {data && !loading && (
-        <div className="flex justify-end">
-          <button onClick={generate} disabled={loading}
-            className="rounded-xl bg-white shadow-sm px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:shadow-md transition-all">
-            ↺ Regenerate
-          </button>
+      {/* ── Group Preferences — always visible so members can add before generating ── */}
+      <SuggestionsSection
+        tripId={tripId}
+        currentMemberId={currentMemberId}
+        members={members}
+        suggestions={suggestions}
+        onAdd={(s) => setSuggestions((prev) => [...prev, s])}
+        onDelete={(id) => setSuggestions((prev) => prev.filter((s) => s.id !== id))}
+      />
+
+      {/* ── Regenerate / Re-suggest button ── */}
+      {!loading && (
+        <div className="flex items-center justify-between gap-2">
+          {data && (
+            <button onClick={generate} disabled={loading}
+              className="rounded-xl bg-white shadow-sm px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:shadow-md transition-all">
+              ↺ Regenerate
+            </button>
+          )}
+          {suggestions.length > 0 && (
+            <button onClick={generate} disabled={loading}
+              className="ml-auto rounded-xl bg-brand-bright/10 px-4 py-2 text-xs font-bold text-brand-bright shadow-sm transition-all hover:bg-brand-bright hover:text-white hover:shadow-md active:scale-[0.98] disabled:opacity-60">
+              ↺ Regenerate with {suggestions.length} preference{suggestions.length !== 1 ? 's' : ''}
+            </button>
+          )}
         </div>
       )}
 
@@ -461,24 +479,6 @@ export function ItineraryBuilder({
                 ))}
               </div>
             </div>
-
-            {/* Group Preferences */}
-            <SuggestionsSection
-              tripId={tripId}
-              currentMemberId={currentMemberId}
-              members={members}
-              suggestions={suggestions}
-              onAdd={(s) => setSuggestions((prev) => [...prev, s])}
-              onDelete={(id) => setSuggestions((prev) => prev.filter((s) => s.id !== id))}
-            />
-
-            {/* Re-suggest */}
-            {suggestions.length > 0 && (
-              <button onClick={generate} disabled={loading}
-                className="w-full rounded-xl bg-brand-bright/10 py-3 text-sm font-bold text-brand-bright shadow-sm transition-all hover:bg-brand-bright hover:text-white hover:shadow-md active:scale-[0.98] disabled:opacity-60">
-                ↺ Re-suggest with {suggestions.length} preference{suggestions.length !== 1 ? 's' : ''}
-              </button>
-            )}
           </div>
 
           {/* ── RIGHT — sidebar ── */}

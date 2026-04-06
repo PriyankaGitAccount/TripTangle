@@ -179,6 +179,8 @@ export interface Poll {
   question: string;
   options: string[];
   poll_date: string | null;
+  is_multiselect: boolean;
+  winning_option_index: number | null;
   created_at: string;
 }
 

@@ -75,6 +75,7 @@ export default async function PlanPage({ params, searchParams }: Props) {
     <PlanDashboard
       trip={tripResult.data}
       members={membersResult.data ?? []}
+      currentMemberId={member.id}
       initialItinerary={itineraryResult.data?.[0] ?? null}
       initialSuggestions={suggestionsResult.data ?? []}
       initialPins={pinsResult.data ?? []}
