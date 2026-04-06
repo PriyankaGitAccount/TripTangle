@@ -23,6 +23,8 @@ CREATE TABLE trips (
 );
 
 -- Members table
+-- No compound unique constraints — deduplication is handled in application code.
+-- The same user_id can appear in multiple trips (one row per trip membership).
 CREATE TABLE members (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
@@ -30,9 +32,7 @@ CREATE TABLE members (
   display_name TEXT NOT NULL CHECK (char_length(display_name) BETWEEN 1 AND 50),
   role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('organizer', 'member')),
   status TEXT NOT NULL DEFAULT 'joined' CHECK (status IN ('pending', 'joined')),
-  joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (trip_id, display_name),
-  UNIQUE (trip_id, user_id)
+  joined_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Availability table
@@ -277,23 +277,17 @@ DROP POLICY IF EXISTS "anon_all_invitations" ON invitations;
 CREATE POLICY "anon_all_invitations" ON invitations FOR ALL TO anon USING (true) WITH CHECK (true);
 
 -- ─────────────────────────────────────────────────────────────────
--- MIGRATION: Members — add user_id, role, and per-user uniqueness
+-- MIGRATION: Members — add user_id + role; drop all compound unique constraints
 -- Run this block in Supabase SQL Editor against the live DB.
 -- ─────────────────────────────────────────────────────────────────
 
 ALTER TABLE members ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('organizer', 'member'));
 
--- Prevent the same user from being inserted twice into the same trip
--- (handles race conditions from double-click or concurrent invite link opens)
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'members_trip_id_user_id_key'
-  ) THEN
-    ALTER TABLE members ADD CONSTRAINT members_trip_id_user_id_key UNIQUE (trip_id, user_id);
-  END IF;
-END $$;
+-- Drop any compound unique constraints — only the PK (id) should be unique.
+-- The same person can and should be a member of multiple trips.
+ALTER TABLE members DROP CONSTRAINT IF EXISTS members_trip_id_display_name_key;
+ALTER TABLE members DROP CONSTRAINT IF EXISTS members_trip_id_user_id_key;
 
 CREATE INDEX IF NOT EXISTS idx_members_user_id ON members(user_id);
 
