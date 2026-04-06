@@ -88,7 +88,11 @@ export default async function TripPage({ params }: Props) {
 
     const displayName = profile?.display_name ?? 'Traveller';
 
-    // Insert member (handle duplicate display_name by appending suffix)
+    // Insert member — handle two failure modes:
+    // 1. UNIQUE(trip_id, user_id) violation: user already joined (race condition / double-click)
+    //    → re-query to find their existing row
+    // 2. UNIQUE(trip_id, display_name) violation: another member has the same name
+    //    → retry with a timestamp suffix
     const { data: newMember, error: memberError } = await supabase
       .from('members')
       .insert({ trip_id: id, user_id: user.id, display_name: displayName, role: 'member', status: 'joined' })
@@ -96,13 +100,25 @@ export default async function TripPage({ params }: Props) {
       .single();
 
     if (memberError) {
-      // Fallback: try with a unique suffix
-      const { data: retried } = await supabase
+      // Check if user is already a member (race condition / duplicate user_id insert)
+      const { data: existing } = await supabase
         .from('members')
-        .insert({ trip_id: id, user_id: user.id, display_name: `${displayName}_${Date.now().toString().slice(-4)}`, role: 'member', status: 'joined' })
         .select('id, role, display_name')
-        .single();
-      if (retried) member = retried;
+        .eq('trip_id', id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existing) {
+        member = existing;
+      } else {
+        // Display name conflict — retry with unique suffix
+        const { data: retried } = await supabase
+          .from('members')
+          .insert({ trip_id: id, user_id: user.id, display_name: `${displayName}_${Date.now().toString().slice(-4)}`, role: 'member', status: 'joined' })
+          .select('id, role, display_name')
+          .single();
+        if (retried) member = retried;
+      }
     } else {
       member = newMember;
     }

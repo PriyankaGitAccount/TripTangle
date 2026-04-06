@@ -26,10 +26,13 @@ CREATE TABLE trips (
 CREATE TABLE members (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   display_name TEXT NOT NULL CHECK (char_length(display_name) BETWEEN 1 AND 50),
+  role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('organizer', 'member')),
   status TEXT NOT NULL DEFAULT 'joined' CHECK (status IN ('pending', 'joined')),
   joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (trip_id, display_name)
+  UNIQUE (trip_id, display_name),
+  UNIQUE (trip_id, user_id)
 );
 
 -- Availability table
@@ -130,17 +133,21 @@ CREATE TABLE IF NOT EXISTS polls (
   question TEXT NOT NULL CHECK (char_length(question) BETWEEN 1 AND 200),
   options JSONB NOT NULL,
   poll_date DATE,
+  is_multiselect BOOLEAN NOT NULL DEFAULT FALSE,
+  winning_option_index INTEGER,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Poll responses (one per member per poll — upsert pattern)
+-- Poll responses
+-- Single-select: one row per (poll_id, member_id)
+-- Multiselect: one row per (poll_id, member_id, option_index) — toggle pattern
 CREATE TABLE IF NOT EXISTS poll_responses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   poll_id UUID NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
   member_id UUID NOT NULL REFERENCES members(id) ON DELETE CASCADE,
   option_index INTEGER NOT NULL CHECK (option_index >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (poll_id, member_id)
+  UNIQUE (poll_id, member_id, option_index)
 );
 
 -- AI-generated itineraries (cached, one per trip)
@@ -268,3 +275,45 @@ CREATE INDEX IF NOT EXISTS idx_invitations_trip_id ON invitations(trip_id);
 ALTER TABLE invitations ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "anon_all_invitations" ON invitations;
 CREATE POLICY "anon_all_invitations" ON invitations FOR ALL TO anon USING (true) WITH CHECK (true);
+
+-- ─────────────────────────────────────────────────────────────────
+-- MIGRATION: Members — add user_id, role, and per-user uniqueness
+-- Run this block in Supabase SQL Editor against the live DB.
+-- ─────────────────────────────────────────────────────────────────
+
+ALTER TABLE members ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('organizer', 'member'));
+
+-- Prevent the same user from being inserted twice into the same trip
+-- (handles race conditions from double-click or concurrent invite link opens)
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'members_trip_id_user_id_key'
+  ) THEN
+    ALTER TABLE members ADD CONSTRAINT members_trip_id_user_id_key UNIQUE (trip_id, user_id);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_members_user_id ON members(user_id);
+
+-- ─────────────────────────────────────────────────────────────────
+-- MIGRATION: Polls — add multiselect support and winner locking
+-- Run this block in Supabase SQL Editor against the live DB.
+-- ─────────────────────────────────────────────────────────────────
+
+ALTER TABLE polls ADD COLUMN IF NOT EXISTS is_multiselect BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE polls ADD COLUMN IF NOT EXISTS winning_option_index INTEGER;
+
+-- Switch poll_responses uniqueness from (poll_id, member_id) to
+-- (poll_id, member_id, option_index) so multiselect can store multiple rows per member
+ALTER TABLE poll_responses DROP CONSTRAINT IF EXISTS poll_responses_poll_id_member_id_key;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'poll_responses_unique_per_option'
+  ) THEN
+    ALTER TABLE poll_responses ADD CONSTRAINT poll_responses_unique_per_option
+      UNIQUE (poll_id, member_id, option_index);
+  END IF;
+END $$;
