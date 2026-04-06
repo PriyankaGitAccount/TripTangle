@@ -73,6 +73,28 @@ function youtubeUrl(d: string) { return `https://www.youtube.com/results?search_
 function tripadvisorUrl(d: string) { return `https://www.tripadvisor.com/Search?q=${encodeURIComponent(d)}`; }
 function googleUrl(d: string) { return `https://www.google.com/search?q=${encodeURIComponent(d + ' things to do travel tips')}`; }
 
+// ── Destination photo via Wikipedia ──────────────────────────────
+// Returns the landmark thumbnail for a city (e.g. Amsterdam canal houses).
+// Falls back to a generic Unsplash travel photo if Wikipedia has no image.
+async function getDestinationPhoto(destination: string): Promise<string> {
+  const city = destination.split(',')[0].trim();
+  const fallback = `https://source.unsplash.com/800x400/?${encodeURIComponent(city)},city,landmark,travel`;
+  try {
+    const res = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(city)}`,
+      { next: { revalidate: 86400 } } // cache 24h
+    );
+    if (!res.ok) return fallback;
+    const data = await res.json();
+    // Upgrade to 800px-wide version for crisp card display
+    const src: string | undefined = data?.originalimage?.source ?? data?.thumbnail?.source;
+    if (!src) return fallback;
+    return src.replace(/\/\d+px-/, '/800px-');
+  } catch {
+    return fallback;
+  }
+}
+
 export default async function DashboardPage() {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -102,6 +124,16 @@ export default async function DashboardPage() {
     : [];
   const countMap = new Map<string, number>();
   memberCounts.forEach((r) => { countMap.set(r.trip_id, (countMap.get(r.trip_id) ?? 0) + 1); });
+
+  // Fetch destination photos in parallel — one Wikipedia call per trip
+  const photoUrls = await Promise.all(
+    trips.map((trip) =>
+      trip.destination
+        ? getDestinationPhoto(trip.destination)
+        : Promise.resolve(`https://source.unsplash.com/800x400/?travel,city,adventure`)
+    )
+  );
+  const photoMap = new Map(trips.map((trip, i) => [trip.id, photoUrls[i]]));
 
   const displayName = profile?.display_name ?? 'Traveller';
   const firstName = displayName.split(' ')[0];
@@ -181,10 +213,7 @@ export default async function DashboardPage() {
               const isOrganizer = membership?.role === 'organizer';
               const memberCount = countMap.get(trip.id) ?? 1;
               const href = isLocked ? `/trip/${trip.id}/plan` : `/trip/${trip.id}`;
-              const destKeyword = trip.destination
-                ? encodeURIComponent(trip.destination.split(',')[0])
-                : 'travel,city';
-              const photoUrl = `https://source.unsplash.com/800x400/?${destKeyword},city,travel`;
+              const photoUrl = photoMap.get(trip.id) ?? '';
               const shortDest = trip.destination?.split(',')[0] ?? '';
 
               return (
